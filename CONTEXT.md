@@ -113,7 +113,7 @@ Hash IDs are: "{absolute_file_path}"
 | repolens/walker.py | Complete | Filesystem traversal, file filtering |
 | repolens/chunker.py | Complete | AST parsing, chunk extraction, metadata |
 | repolens/store.py | Complete | Embeddings, ChromaDB storage, retrieval |
-| repolens/retriever.py | Next | Hybrid search, re-ranking |
+| repolens/retriever.py | Complete | Basic retrieval, vector search, metadata re-ranking |
 | repolens/cli.py | Pending | Click CLI entry points |
 | repolens/llm.py | Pending | LLM call, prompt construction, citations |
 
@@ -128,6 +128,7 @@ Note: llm.py does not exist yet. It will be created at Milestone 7.
 | tests/test_walker.py | 11 | Passing |
 | tests/test_chunker.py | 21 | Passing |
 | tests/test_store.py | 16 | Passing |
+| tests/test_retriever.py | 16 | Passing |
 
 Run all tests: pytest tests/ -v
 
@@ -141,8 +142,8 @@ Run all tests: pytest tests/ -v
 | 2 | AST chunker | Complete |
 | 3 | Metadata extraction | Complete |
 | 4 | Embedding pipeline + vector store | Complete |
-| 5 | Basic retrieval | Next |
-| 6 | Hybrid search + re-ranking | Pending |
+| 5 | Basic retrieval | Complete |
+| 6 | Hybrid search + re-ranking | Next |
 | 7 | LLM integration + citations | Pending |
 | 8 | CLI | Pending |
 | 9 | FastAPI backend + React frontend | Pending |

@@ -1,8 +1,8 @@
 """
 Tests for repolens/chunker.py.
 
-Each test writes Python source as a string to a temp file and asserts
-on the chunks produced. Tests are fully hermetic — no real repo needed.
+Covers original chunking behavior plus new metadata extraction:
+call graph collection and docstring extraction.
 """
 
 import pytest
@@ -55,7 +55,6 @@ class MyService:
         return self.value
 """)
         chunks = chunk_file(f)
-        # The whole class is one chunk. Methods are not split separately.
         assert len(chunks) == 1
         assert chunks[0].name == "MyService"
         assert chunks[0].node_type == "class_definition"
@@ -86,8 +85,6 @@ def foo():
     pass
 """)
         chunks = chunk_file(f)
-        # foo starts on line 3, not line 2 (Tree-sitter is 0-indexed,
-        # we convert to 1-indexed)
         assert chunks[0].start_line == 3
 
     def test_token_count_is_positive(self, tmp_path):
@@ -138,3 +135,91 @@ def a_func():
         chunks = chunk_file(f)
         lines = [c.start_line for c in chunks]
         assert lines == sorted(lines)
+
+
+class TestExtractCalls:
+
+    def test_simple_function_call(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    bar()
+""")
+        chunks = chunk_file(f)
+        assert "bar" in chunks[0].calls
+
+    def test_method_call_extracts_method_name(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    self.validate()
+""")
+        chunks = chunk_file(f)
+        assert "validate" in chunks[0].calls
+
+    def test_multiple_calls_deduplicated(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    bar()
+    bar()
+    baz()
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].calls.count("bar") == 1
+        assert "baz" in chunks[0].calls
+
+    def test_no_calls_returns_empty_list(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    x = 1
+    return x
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].calls == []
+
+    def test_calls_are_sorted(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    zebra()
+    alpha()
+    mango()
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].calls == sorted(chunks[0].calls)
+
+
+class TestExtractDocstring:
+
+    def test_double_quote_docstring(self, tmp_path):
+        f = write_py(tmp_path / "a.py", '''\
+def foo():
+    """This is a docstring."""
+    pass
+''')
+        chunks = chunk_file(f)
+        assert chunks[0].docstring == "This is a docstring."
+
+    def test_single_quote_docstring(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    '''Single quote docstring.'''
+    pass
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].docstring == "Single quote docstring."
+
+    def test_no_docstring_returns_none(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    x = 1
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].docstring is None
+
+    def test_class_docstring_extracted(self, tmp_path):
+        f = write_py(tmp_path / "a.py", '''\
+class MyService:
+    """Handles core service logic."""
+    def run(self):
+        pass
+''')
+        chunks = chunk_file(f)
+        assert chunks[0].docstring == "Handles core service logic."

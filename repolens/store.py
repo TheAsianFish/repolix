@@ -280,3 +280,81 @@ def query_chunks(
         })
 
     return output
+
+
+def keyword_search(
+    query: str,
+    store_path: str | Path,
+    n_results: int = 10,
+) -> list[dict]:
+    """
+    Search stored chunks using keyword matching on source text,
+    function names, and docstrings.
+
+    Splits the query into tokens and searches ChromaDB for chunks
+    whose stored document contains any token as a substring.
+    Results are deduplicated and returned in match-count order —
+    chunks matching more tokens rank higher.
+
+    Unlike vector search, this requires no OpenAI API call.
+    It catches exact identifier matches that vector search misses.
+
+    Args:
+        query: Plain English query string.
+        store_path: Path to the ChromaDB persistence directory.
+        n_results: Maximum results to return.
+
+    Returns:
+        List of result dicts in the same format as query_chunks,
+        with distance set to 0.0 (not applicable for keyword search).
+    """
+    db = _get_client(store_path)
+    chunks_col = db.get_or_create_collection(CHUNKS_COLLECTION)
+
+    tokens = [
+        t.strip(".,?!:;\"'()[]{}").lower()
+        for t in query.split()
+        if t.strip(".,?!:;\"'()[]{}").lower()
+        and len(t.strip(".,?!:;\"'()[]{}")) > 2
+    ]
+
+    if not tokens:
+        return []
+
+    # Search for each token separately and track how many tokens
+    # each chunk matches. More token matches = more relevant.
+    match_counts: dict[str, int] = {}
+    result_map: dict[str, dict] = {}
+
+    for token in tokens:
+        try:
+            results = chunks_col.get(
+                where_document={"$contains": token},
+                include=["documents", "metadatas"],
+            )
+        except Exception:
+            continue
+
+        for doc, meta in zip(results["documents"], results["metadatas"]):
+            key = f"{meta['file_path']}:{meta['start_line']}"
+            match_counts[key] = match_counts.get(key, 0) + 1
+            result_map[key] = {
+                "source": doc,
+                "file_path": meta["file_path"],
+                "name": meta["name"],
+                "node_type": meta["node_type"],
+                "start_line": meta["start_line"],
+                "end_line": meta["end_line"],
+                "calls": meta["calls"].split(",") if meta["calls"] else [],
+                "docstring": meta["docstring"] or None,
+                "distance": 0.0,
+            }
+
+    # Sort by match count descending — more token matches rank higher.
+    sorted_keys = sorted(
+        match_counts.keys(),
+        key=lambda k: match_counts[k],
+        reverse=True,
+    )
+
+    return [result_map[k] for k in sorted_keys[:n_results]]

@@ -191,14 +191,13 @@ Rules:
 - Always run pytest tests/ -v before committing. Green tests only.
 - Always run git status before git add to verify .env is absent.
 - Never use git add . blindly — use git add <specific files>.
-- Push to main after every commit. No local-only commits.
+- Never push automatically. Always wait for explicit instruction to push.
 
 Sequence for every commit:
   pytest tests/ -v
   git status
   git add <specific files changed>
   git commit -m "type: description"
-  git push origin main
 
 ---
 

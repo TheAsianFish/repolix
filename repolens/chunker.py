@@ -210,11 +210,21 @@ def _walk_tree(
     Stops descending into chunk nodes to prevent double-counting,
     EXCEPT for class_definition nodes — we descend into those to
     capture their methods with parent_class set.
+
+    When a function or class is wrapped in a decorated_definition node
+    (i.e. it has one or more decorators), the source text is taken from
+    the decorated_definition parent so that decorator lines are included.
+    Decorators like @require_auth or @property are often the most
+    semantically meaningful part of a definition for retrieval.
     """
     for child in node.children:
         if child.type in CHUNK_NODE_TYPES:
+            # If the parent node is a decorated_definition, use it as
+            # the source range so decorators are included in the chunk.
+            source_node = node if node.type == "decorated_definition" else child
+
             source_text = source_bytes[
-                child.start_byte:child.end_byte
+                source_node.start_byte:source_node.end_byte
             ].decode("utf-8")
 
             token_count = count_tokens(source_text)
@@ -231,8 +241,8 @@ def _walk_tree(
                 node_type=child.type,
                 name=name,
                 source=source_text,
-                start_line=child.start_point[0] + 1,
-                end_line=child.end_point[0] + 1,
+                start_line=source_node.start_point[0] + 1,
+                end_line=source_node.end_point[0] + 1,
                 token_count=token_count,
                 calls=extract_calls(child, source_bytes),
                 docstring=extract_docstring(child, source_bytes),

@@ -120,7 +120,7 @@ Hash IDs are: "{absolute_file_path}"
 | repolens/store.py | Complete | Embeddings, ChromaDB storage, retrieval; index_repo, parent_class, file_rel_path added |
 | repolens/retriever.py | Complete | Hybrid search (vector + keyword), RRF, metadata re-ranking |
 | repolens/llm.py | Complete | Prompt construction, gpt-5.4-mini call, citation parsing |
-| repolens/cli.py | Pending | Click CLI entry points |
+| repolens/cli.py | Complete | Click CLI: index and query commands, progress bar, citations output |
 
 ---
 
@@ -133,6 +133,7 @@ Hash IDs are: "{absolute_file_path}"
 | tests/test_store.py | 16 | Passing |
 | tests/test_retriever.py | 22 | Passing |
 | tests/test_llm.py | 20 | Passing |
+| tests/test_cli.py | 7 | Passing |
 
 Run all tests: pytest tests/ -v
 
@@ -149,7 +150,8 @@ Run all tests: pytest tests/ -v
 | 5 | Basic retrieval | Complete |
 | 6 | Hybrid search + re-ranking | Complete |
 | 7 | LLM integration + citations | Complete |
-| 8 | CLI | Next |
+| 8 | CLI | Complete |
+| 9 | FastAPI backend + React frontend | Next |
 | 9 | FastAPI backend + React frontend | Pending |
 | 10 | Polish + ship | Pending |
 

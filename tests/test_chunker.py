@@ -55,9 +55,12 @@ class MyService:
         return self.value
 """)
         chunks = chunk_file(f)
-        assert len(chunks) == 1
-        assert chunks[0].name == "MyService"
-        assert chunks[0].node_type == "class_definition"
+        # Class chunk + one chunk per method, each tagged with parent_class
+        assert len(chunks) == 3
+        class_chunk = next(c for c in chunks if c.node_type == "class_definition")
+        assert class_chunk.name == "MyService"
+        method_chunks = [c for c in chunks if c.node_type == "function_definition"]
+        assert all(c.parent_class == "MyService" for c in method_chunks)
 
     def test_mixed_functions_and_classes(self, tmp_path):
         f = write_py(tmp_path / "a.py", """\
@@ -72,10 +75,16 @@ def another():
     pass
 """)
         chunks = chunk_file(f)
-        assert len(chunks) == 3
+        # standalone, Engine class, Engine.run method (with parent_class), another
+        assert len(chunks) == 4
         assert chunks[0].name == "standalone"
+        assert chunks[0].parent_class is None
         assert chunks[1].name == "Engine"
-        assert chunks[2].name == "another"
+        assert chunks[1].parent_class is None
+        assert chunks[2].name == "run"
+        assert chunks[2].parent_class == "Engine"
+        assert chunks[3].name == "another"
+        assert chunks[3].parent_class is None
 
     def test_start_line_is_one_indexed(self, tmp_path):
         f = write_py(tmp_path / "a.py", """\

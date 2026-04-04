@@ -48,6 +48,7 @@ class Chunk:
     token_count: int        # Exact token count via tiktoken
     calls: list[str]        # Names of functions called within this chunk
     docstring: str | None   # First string literal if used as docstring
+    parent_class: str | None   # Enclosing class name for methods
 
 
 def count_tokens(text: str) -> int:
@@ -197,12 +198,18 @@ def _walk_tree(
     source_bytes: bytes,
     file_path: str,
     chunks: list[Chunk],
+    enclosing_class: str | None = None,
 ) -> None:
     """
     Recursively walk the AST and extract function and class nodes.
 
-    Stops descending into a node once it is identified as a chunk —
-    preventing methods inside a class from being double-counted.
+    Tracks enclosing class context so methods know which class they
+    belong to. This is stored as parent_class metadata and used for
+    disambiguation when multiple classes have similarly named methods.
+
+    Stops descending into chunk nodes to prevent double-counting,
+    EXCEPT for class_definition nodes — we descend into those to
+    capture their methods with parent_class set.
     """
     for child in node.children:
         if child.type in CHUNK_NODE_TYPES:
@@ -217,16 +224,38 @@ def _walk_tree(
                 source_text = _TOKENIZER.decode(encoded[:MAX_CHUNK_TOKENS])
                 token_count = MAX_CHUNK_TOKENS
 
+            name = extract_name(child, source_bytes)
+
             chunks.append(Chunk(
                 file_path=file_path,
                 node_type=child.type,
-                name=extract_name(child, source_bytes),
+                name=name,
                 source=source_text,
                 start_line=child.start_point[0] + 1,
                 end_line=child.end_point[0] + 1,
                 token_count=token_count,
                 calls=extract_calls(child, source_bytes),
                 docstring=extract_docstring(child, source_bytes),
+                parent_class=enclosing_class,
             ))
+
+            # For class definitions, descend into the body so methods
+            # are chunked separately with parent_class set to this
+            # class name. For function definitions, stop — nested
+            # functions belong to their parent chunk.
+            if child.type == "class_definition":
+                _walk_tree(
+                    child,
+                    source_bytes,
+                    file_path,
+                    chunks,
+                    enclosing_class=name,
+                )
         else:
-            _walk_tree(child, source_bytes, file_path, chunks)
+            _walk_tree(
+                child,
+                source_bytes,
+                file_path,
+                chunks,
+                enclosing_class=enclosing_class,
+            )

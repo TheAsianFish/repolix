@@ -33,6 +33,7 @@ def make_chunk(**kwargs) -> Chunk:
         token_count=12,
         calls=["validate_token"],
         docstring="Validates user credentials.",
+        parent_class=None,
     )
     defaults.update(kwargs)
     return Chunk(**defaults)

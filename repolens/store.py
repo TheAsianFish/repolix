@@ -114,15 +114,29 @@ def _embed_texts(texts: list[str], client: OpenAI) -> list[list[float]]:
     return all_embeddings
 
 
-def chunk_to_metadata(chunk: Chunk) -> dict:
+def chunk_to_metadata(chunk: Chunk, repo_root: str | None = None) -> dict:
     """
-    Convert a Chunk's metadata fields to a ChromaDB-compatible dict.
+    Convert a Chunk's metadata to a ChromaDB-compatible dict.
 
-    ChromaDB metadata values must be str, int, float, or bool.
-    Lists (like calls) must be serialized to a string.
+    All values must be str, int, float, or bool.
+    Lists are comma-joined. None becomes empty string.
+
+    repo_root: if provided, stores relative path from repo root
+    as file_rel_path for better disambiguation in re-ranking.
     """
+    if repo_root:
+        try:
+            file_rel_path = str(
+                Path(chunk.file_path).relative_to(repo_root)
+            )
+        except ValueError:
+            file_rel_path = chunk.file_path
+    else:
+        file_rel_path = chunk.file_path
+
     return {
         "file_path": chunk.file_path,
+        "file_rel_path": file_rel_path,
         "node_type": chunk.node_type,
         "name": chunk.name,
         "start_line": chunk.start_line,
@@ -130,6 +144,7 @@ def chunk_to_metadata(chunk: Chunk) -> dict:
         "token_count": chunk.token_count,
         "calls": ",".join(chunk.calls),
         "docstring": chunk.docstring or "",
+        "parent_class": chunk.parent_class or "",
     }
 
 
@@ -139,6 +154,7 @@ def index_chunks(
     store_path: str | Path,
     openai_client: OpenAI,
     force: bool = False,
+    repo_root: str | None = None,
 ) -> dict:
     """
     Embed and store chunks for a single file in ChromaDB.
@@ -206,7 +222,7 @@ def index_chunks(
         ids=ids,
         documents=[c.source for c in chunks],
         embeddings=embeddings,
-        metadatas=[chunk_to_metadata(c) for c in chunks],
+        metadatas=[chunk_to_metadata(c, repo_root=repo_root) for c in chunks],
     )
 
     # Update stored hash after successful indexing.
@@ -270,12 +286,15 @@ def query_chunks(
         output.append({
             "source": doc,
             "file_path": meta["file_path"],
+            "file_rel_path": meta.get("file_rel_path", meta["file_path"]),
             "name": meta["name"],
             "node_type": meta["node_type"],
             "start_line": meta["start_line"],
             "end_line": meta["end_line"],
+            "token_count": meta.get("token_count", 0),
             "calls": meta["calls"].split(",") if meta["calls"] else [],
             "docstring": meta["docstring"] or None,
+            "parent_class": meta.get("parent_class") or None,
             "distance": dist,
         })
 
@@ -358,3 +377,80 @@ def keyword_search(
     )
 
     return [result_map[k] for k in sorted_keys[:n_results]]
+
+
+def index_repo(
+    repo_path: str | Path,
+    store_path: str | Path,
+    openai_client: OpenAI,
+    force: bool = False,
+    progress_callback=None,
+) -> dict:
+    """
+    Index an entire repository end to end.
+
+    Walks the repo, chunks every Python file, embeds the chunks,
+    and stores everything in ChromaDB. Skips files whose hash has
+    not changed since the last index run unless force=True.
+
+    This is the primary entry point for the CLI and FastAPI backend.
+
+    Args:
+        repo_path: Path to the repository root.
+        store_path: Path to the ChromaDB persistence directory.
+        openai_client: Initialized OpenAI client.
+        force: If True, re-index all files regardless of hash.
+        progress_callback: Optional callable(current, total, file_path)
+            called after each file is processed. Used for progress bars.
+
+    Returns:
+        Dict with keys:
+            total_files: int — files found by walker
+            indexed: int — files actually re-embedded
+            skipped: int — files skipped due to hash match
+            total_chunks: int — chunks stored across all indexed files
+            errors: list[str] — files that failed with error messages
+    """
+    from repolens.walker import walk_repo
+    from repolens.chunker import chunk_file
+
+    repo_path = Path(repo_path).resolve()
+    store_path = Path(store_path).resolve()
+    repo_root = str(repo_path)
+
+    files = walk_repo(repo_path)
+    total = len(files)
+
+    stats = {
+        "total_files": total,
+        "indexed": 0,
+        "skipped": 0,
+        "total_chunks": 0,
+        "errors": [],
+    }
+
+    for i, file_path in enumerate(files):
+        try:
+            chunks = chunk_file(file_path)
+            result = index_chunks(
+                chunks=chunks,
+                file_path=file_path,
+                store_path=store_path,
+                openai_client=openai_client,
+                force=force,
+                repo_root=repo_root,
+            )
+
+            if result["skipped"]:
+                stats["skipped"] += 1
+            else:
+                stats["indexed"] += 1
+                stats["total_chunks"] += result["indexed"]
+
+        except Exception as e:
+            stats["errors"].append(f"{file_path}: {e}")
+
+        if progress_callback:
+            progress_callback(i + 1, total, str(file_path))
+
+    return stats

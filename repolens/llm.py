@@ -9,7 +9,6 @@ LLM is instructed to use inline. We map those labels back to
 real file paths and line numbers after parsing the response.
 """
 
-import re
 from openai import OpenAI
 
 LLM_MODEL = "gpt-5.4-mini"
@@ -106,8 +105,10 @@ def parse_citations(response_text: str, labeled_chunks: list[dict]) -> list[dict
     Extract citation labels from the LLM response and resolve them
     to real file paths and line numbers.
 
-    Looks for patterns like [1], [2] in the response text. For each
-    label found, maps it back to the corresponding chunk metadata.
+    Checks exactly the labels we generated (e.g. [1] through [5])
+    against the response text. This avoids false positives from
+    arbitrary bracketed numbers like [404] or [0] that could appear
+    in a technical answer but were never valid citation labels.
 
     Args:
         response_text: Raw text response from the LLM.
@@ -116,18 +117,15 @@ def parse_citations(response_text: str, labeled_chunks: list[dict]) -> list[dict
     Returns:
         List of citation dicts, each with:
             label, file_rel_path, start_line, end_line, name.
-        Ordered by label number, deduplicated.
+        Ordered by label number, with no duplicates.
     """
     label_map = {c["label"]: c for c in labeled_chunks}
 
-    found_labels = sorted(
-        set(re.findall(r"\[\d+\]", response_text)),
-        key=lambda x: int(x[1:-1]),
-    )
-
+    # Iterate only over labels we actually generated, in numeric order.
+    # A label is "cited" if it appears anywhere in the response text.
     citations = []
-    for label in found_labels:
-        if label in label_map:
+    for label in sorted(label_map.keys(), key=lambda x: int(x[1:-1])):
+        if label in response_text:
             chunk = label_map[label]
             citations.append({
                 "label": label,

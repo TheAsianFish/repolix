@@ -182,3 +182,11 @@ class TestAnswerQuery:
         answer_query("query", results, client)
         call_kwargs = client.chat.completions.create.call_args.kwargs
         assert call_kwargs["temperature"] <= 0.1
+
+    def test_max_tokens_is_set(self):
+        client = mock_openai("Answer.")
+        results = [make_result()]
+        answer_query("query", results, client)
+        call_kwargs = client.chat.completions.create.call_args.kwargs
+        assert "max_tokens" in call_kwargs
+        assert call_kwargs["max_tokens"] == 1024

@@ -448,7 +448,11 @@ def index_repo(
                 stats["total_chunks"] += result["indexed"]
 
         except Exception as e:
-            stats["errors"].append(f"{file_path}: {e}")
+            import traceback
+            stats["errors"].append(
+                f"{file_path}: {type(e).__name__}: {e}\n"
+                f"{traceback.format_exc()}"
+            )
 
         if progress_callback:
             progress_callback(i + 1, total, str(file_path))

@@ -13,31 +13,29 @@ from openai import OpenAI
 
 LLM_MODEL = "gpt-5.4-mini"
 
-# Maximum chunks to send to the LLM. Hard cap regardless of
-# how many the retriever returns. 5 * 300 tokens = 1500 tokens
-# of context, well within gpt-5.4-mini's context window.
-MAX_CONTEXT_CHUNKS = 5
+# Maximum chunks to send to the LLM. Set to 8 to include up to
+# 5 primary results + 3 call graph expansions from expand_via_call_graph.
+# 8 * 300 tokens = 2400 tokens of context, still well within budget.
+MAX_CONTEXT_CHUNKS = 8
 
 SYSTEM_PROMPT = """You are a precise code assistant that answers
 questions about a specific codebase using only the provided code
 chunks.
 
 Rules:
-- Use ALL provided chunks when formulating your answer. Do not
-  ignore chunks that are partially relevant.
+- Treat the provided chunks as your only source of truth. Do not
+  invent function names, file paths, or behavior not shown in them.
 - Cite chunks inline using their label [1], [2] etc. every time
   your answer references that chunk's behavior or code.
 - If multiple chunks together explain the answer, synthesize them
-  into a single coherent explanation and cite all of them.
-- Do not say you lack information if any provided chunk is relevant
-  to the question, even partially.
-- Never invent function names, file paths, or behavior not shown
-  in the chunks.
+  into a single coherent explanation and cite all relevant ones.
+- Only cite a chunk if your answer actually references its content.
+  Do not force-cite chunks that are not relevant to the question.
 - Be concise and precise. Your audience is the developer who wrote
   or is studying this code.
 - End every answer with a CITATIONS section listing each label
   you used, its file path, and its line range.
-- If the chunks genuinely do not contain enough information to
+- If the provided chunks do not contain enough information to
   answer, say exactly what is missing and what the user should
   search for instead.
 """
@@ -181,6 +179,7 @@ def answer_query(
             {"role": "user", "content": prompt},
         ],
         temperature=0.1,
+        max_tokens=1024,
     )
 
     response_text = response.choices[0].message.content or ""

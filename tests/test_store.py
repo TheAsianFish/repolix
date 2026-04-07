@@ -14,6 +14,7 @@ from repolens.store import (
     build_embed_text,
     chunk_to_metadata,
     index_chunks,
+    keyword_search,
     query_chunks,
     EMBEDDING_MODEL,
 )
@@ -43,12 +44,25 @@ def make_chunk(**kwargs) -> Chunk:
 def mock_openai_client(embedding_dim: int = 8) -> MagicMock:
     """
     Return a MagicMock that behaves like an OpenAI client.
-    Embeddings are zero vectors of length embedding_dim.
+
+    Returns one zero-vector embedding per input text so the mock
+    works correctly for any batch size. Using a fixed return_value
+    would always produce one embedding regardless of input count,
+    causing ChromaDB to reject the length mismatch on multi-chunk
+    index calls.
     """
     client = MagicMock()
-    embedding = MagicMock()
-    embedding.embedding = [0.0] * embedding_dim
-    client.embeddings.create.return_value.data = [embedding]
+
+    def _create_embeddings(**kwargs):
+        inputs = kwargs.get("input", [])
+        response = MagicMock()
+        response.data = [
+            MagicMock(embedding=[0.0] * embedding_dim)
+            for _ in inputs
+        ]
+        return response
+
+    client.embeddings.create.side_effect = _create_embeddings
     return client
 
 
@@ -212,3 +226,78 @@ class TestIndexChunks:
 
         assert result["indexed"] == 0
         assert result["skipped"] is False
+
+
+# ── keyword_search ────────────────────────────────────────────────────────────
+
+def _index_chunk(chunk: Chunk, tmp_path: Path) -> Path:
+    """Index a single chunk into a fresh ChromaDB store and return the store path."""
+    src = tmp_path / "src.py"
+    src.write_text("placeholder")
+    db_path = tmp_path / "db"
+    client = mock_openai_client()
+    index_chunks([chunk], src, db_path, client)
+    return db_path
+
+
+class TestKeywordSearch:
+
+    def test_finds_chunk_by_three_char_token(self, tmp_path):
+        chunk = make_chunk(source="def walk_repo(path): pass")
+        db = _index_chunk(chunk, tmp_path)
+        results = keyword_search("walk", db)
+        assert any(r["name"] == "authenticate_user" or "walk" in r["source"]
+                   for r in results)
+
+    def test_finds_chunk_by_two_char_token(self, tmp_path):
+        chunk = make_chunk(source="import os\ndef list_files(path):\n    return os.listdir(path)")
+        db = _index_chunk(chunk, tmp_path)
+        results = keyword_search("os", db)
+        assert len(results) == 1
+
+    def test_two_char_token_not_dropped(self, tmp_path):
+        # Regression: tokens of length 2 were previously filtered out by
+        # the > 2 guard, meaning queries containing "os", "db", "id" etc.
+        # never reached ChromaDB at all.
+        chunk = make_chunk(source="def connect_db(db): return db.cursor()")
+        db = _index_chunk(chunk, tmp_path)
+        results = keyword_search("db connection", db)
+        assert len(results) == 1
+
+    def test_single_char_token_still_dropped(self, tmp_path):
+        # Single characters are intentionally excluded — they match too
+        # broadly via $contains and would pollute results.
+        chunk = make_chunk(source="def foo(a, b): return a + b")
+        db = _index_chunk(chunk, tmp_path)
+        results = keyword_search("a b", db)
+        # Both tokens are length 1 — nothing reaches ChromaDB, empty result.
+        assert results == []
+
+    def test_returns_empty_when_no_match(self, tmp_path):
+        chunk = make_chunk(source="def foo(): pass")
+        db = _index_chunk(chunk, tmp_path)
+        results = keyword_search("zzznomatch", db)
+        assert results == []
+
+    def test_more_token_matches_ranks_higher(self, tmp_path):
+        src = tmp_path / "src.py"
+        src.write_text("placeholder")
+        db_path = tmp_path / "db"
+        client = mock_openai_client()
+
+        chunk_both = make_chunk(
+            file_path=str(tmp_path / "src.py"),
+            name="walk_repo",
+            source="def walk_repo(): walk(); repo()",
+            start_line=1, end_line=2,
+        )
+        chunk_one = make_chunk(
+            file_path=str(tmp_path / "src.py"),
+            name="just_walk",
+            source="def just_walk(): walk()",
+            start_line=3, end_line=4,
+        )
+        index_chunks([chunk_both, chunk_one], src, db_path, client)
+
+        results = keyword_search("walk repo", db_path)
+        assert results[0]["name"] == "walk_repo"

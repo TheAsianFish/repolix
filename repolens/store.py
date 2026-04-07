@@ -336,7 +336,7 @@ def keyword_search(
         t.strip(".,?!:;\"'()[]{}").lower()
         for t in query.split()
         if t.strip(".,?!:;\"'()[]{}").lower()
-        and len(t.strip(".,?!:;\"'()[]{}")) > 2
+        and len(t.strip(".,?!:;\"'()[]{}")) >= 2
     ]
 
     if not tokens:

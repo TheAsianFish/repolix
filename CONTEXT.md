@@ -1,4 +1,4 @@
-# codesight — Project Context
+# repolix — Project Context
 
 Paste this file at the top of every new Cursor chat and every new
 Claude conversation to restore full project context instantly.
@@ -6,12 +6,15 @@ Update this file at the end of every milestone before moving on.
 
 ---
 
-## What codesight is
+## What repolix is
 
 A local-first codebase context engine. Point it at any Python repo,
 ask plain English questions, get back answers with exact file and
 line number citations. Code never leaves the user's machine.
 Free and open source. Built for developer tooling.
+
+Published on PyPI as `repolix` (previously developed under the name
+`codesight`; renamed before public launch).
 
 ---
 
@@ -27,7 +30,7 @@ Free and open source. Built for developer tooling.
 | Web server | FastAPI | Async, simple, automatic validation |
 | Frontend | React + TypeScript | SPA served by FastAPI from frontend/dist; dev via Vite at localhost:3000 |
 | CLI | Click | Python CLI standard |
-| Install | pip install codesight | One command |
+| Install | pip install repolix | One command |
 
 ---
 
@@ -165,11 +168,11 @@ have no Node.js runtime dependency.
 
 | Collection | Purpose |
 |---|---|
-| codesight_chunks | Stores chunk source, embeddings, metadata |
-| codesight_hashes | Stores one hash per file for incremental indexing |
+| repolix_chunks | Stores chunk source, embeddings, metadata |
+| repolix_hashes | Stores one hash per file for incremental indexing |
 
-ChromaDB persists to .codesight/ inside the indexed repo root.
-.codesight/ is gitignored.
+ChromaDB persists to .repolix/ inside the indexed repo root.
+.repolix/ is gitignored.
 
 Chunk IDs: "{absolute_file_path}:{start_line}"
 Hash IDs: "{absolute_file_path}"
@@ -180,17 +183,17 @@ Hash IDs: "{absolute_file_path}"
 
 | File | Status | Responsibility |
 |---|---|---|
-| codesight/walker.py | Complete | Filesystem traversal, file filtering |
-| codesight/chunker.py | Complete | AST parsing, chunk + metadata extraction, is_truncated flag |
-| codesight/store.py | Complete | Embeddings, ChromaDB storage, retrieval, index_repo orchestrator |
-| codesight/retriever.py | Complete | Hybrid search, RRF, re-ranking, call graph expansion |
-| codesight/llm.py | Complete | Prompt construction, gpt-5.4-mini call, citation parsing, CITATIONS block stripping |
-| codesight/cli.py | Complete | Click CLI — index and query commands, confidence label |
-| codesight/api.py | Complete | FastAPI backend — /index, /query, /status, /health; serves built SPA from frontend/dist |
+| repolix/walker.py | Complete | Filesystem traversal, file filtering |
+| repolix/chunker.py | Complete | AST parsing, chunk + metadata extraction, is_truncated flag |
+| repolix/store.py | Complete | Embeddings, ChromaDB storage, retrieval, index_repo orchestrator |
+| repolix/retriever.py | Complete | Hybrid search, RRF, re-ranking, call graph expansion |
+| repolix/llm.py | Complete | Prompt construction, gpt-5.4-mini call, citation parsing, CITATIONS block stripping |
+| repolix/cli.py | Complete | Click CLI — index and query commands, confidence label |
+| repolix/api.py | Complete | FastAPI backend — /index, /query, /status, /health; serves built SPA from frontend/dist |
 | frontend/src/ | Complete | React + TypeScript SPA; Vite dev server for development; built output served by FastAPI |
 | tests/conftest.py | Complete | Creates minimal frontend/dist stub before TestClient initialises |
 
-Note: codesight/embedder.py was deleted. It was an unimplemented stub;
+Note: repolix/embedder.py was deleted. It was an unimplemented stub;
 the embedding logic lives in store.py as _embed_texts and build_embed_text.
 
 ---
@@ -230,8 +233,9 @@ pytest output over this table.
 | 9 | FastAPI backend + React frontend | Complete |
 | 10 | Polish + ship | Complete |
 | 11 | Post-V1 output quality + UX fixes | Complete |
+| 12 | Rename codesight → repolix; publish to PyPI as repolix 0.1.0 | Complete |
 
-V1 shipped. Post-V1 polish complete. Next work begins on V2.
+V1 shipped as repolix 0.1.0 on PyPI. Post-V1 polish complete. Next work begins on V2.
 
 ---
 
@@ -250,11 +254,27 @@ These were identified after V1 ship and resolved before V2 work begins.
 | Replace chunks-used footer with confidence label | cli.py, test_cli.py | cf015c8 |
 | Replace fake 2-step progress bar with status messages | cli.py | a154c10 |
 || Disable noUnusedLocals/noUnusedParameters to unblock npm run build | frontend/tsconfig.json | 338c1e4 |
-|| Serve built React SPA from FastAPI; catch-all route for client-side routing | codesight/api.py | 12a2ddd |
+|| Serve built React SPA from FastAPI; catch-all route for client-side routing | repolix/api.py | 12a2ddd |
 || Add conftest.py to create minimal frontend/dist stub before TestClient initialises | tests/conftest.py | c1d1e69 |
 || Complete pyproject.toml for PyPI: authors, classifiers, tiktoken, package-data | pyproject.toml | 5514e3c |
 || Add MANIFEST.in for sdist completeness | MANIFEST.in | 56f50e1 |
-|| Fix DIST_DIR to resolve from package dir when installed via pip | codesight/api.py | e90854a |
+|| Fix DIST_DIR to resolve from package dir when installed via pip | repolix/api.py | e90854a |
+
+---
+
+## Milestone 12 — Rename to repolix + PyPI launch
+
+| Change | Files |
+|---|---|
+| Rename package folder codesight/ → repolix/ | all Python sources |
+| Update all imports from codesight.* → repolix.* | repolix/*.py, tests/*.py |
+| Rename CLI entrypoint codesight → repolix | pyproject.toml, cli.py |
+| Rename ChromaDB collections to repolix_chunks / repolix_hashes | repolix/store.py |
+| Rename store dir .codesight/ → .repolix/ | cli.py, api.py, tests/ |
+| Update frontend: title, api.ts comment, package.json name | frontend/* |
+| Rename pyproject.toml package name codesight → repolix | pyproject.toml |
+| Update README, CONTEXT, MANIFEST.in, .gitignore, start.sh | docs/config |
+| Published repolix 0.1.0 to PyPI | — |
 
 ---
 
@@ -263,13 +283,13 @@ These were identified after V1 ship and resolved before V2 work begins.
 Run these steps in order before every release:
 
   npm run build --prefix frontend        # rebuild React bundle
-  cp -r frontend/dist codesight/dist      # stage bundle inside Python package
+  cp -r frontend/dist repolix/dist        # stage bundle inside Python package
   python -m build                        # creates dist/*.whl and dist/*.tar.gz
   twine check dist/*                     # validate metadata before upload
   twine upload dist/*                    # upload to PyPI (prompts for token)
 
 On PyPI, use an API token (not your password). Create one at
-https://pypi.org/manage/account/token/ scoped to the codesight project.
+https://pypi.org/manage/account/token/ scoped to the repolix project.
 Store it in ~/.pypirc or pass as the password when twine prompts
 (username = __token__, password = pypi-...).
 

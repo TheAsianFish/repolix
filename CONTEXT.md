@@ -252,6 +252,28 @@ These were identified after V1 ship and resolved before V2 work begins.
 || Disable noUnusedLocals/noUnusedParameters to unblock npm run build | frontend/tsconfig.json | 338c1e4 |
 || Serve built React SPA from FastAPI; catch-all route for client-side routing | repolens/api.py | 12a2ddd |
 || Add conftest.py to create minimal frontend/dist stub before TestClient initialises | tests/conftest.py | c1d1e69 |
+|| Complete pyproject.toml for PyPI: authors, classifiers, tiktoken, package-data | pyproject.toml | 5514e3c |
+|| Add MANIFEST.in for sdist completeness | MANIFEST.in | 56f50e1 |
+|| Fix DIST_DIR to resolve from package dir when installed via pip | repolens/api.py | e90854a |
+
+---
+
+## PyPI release sequence
+
+Run these steps in order before every release:
+
+  npm run build --prefix frontend        # rebuild React bundle
+  cp -r frontend/dist repolens/dist      # stage bundle inside Python package
+  python -m build                        # creates dist/*.whl and dist/*.tar.gz
+  twine check dist/*                     # validate metadata before upload
+  twine upload dist/*                    # upload to PyPI (prompts for token)
+
+On PyPI, use an API token (not your password). Create one at
+https://pypi.org/manage/account/token/ scoped to the repolens project.
+Store it in ~/.pypirc or pass as the password when twine prompts
+(username = __token__, password = pypi-...).
+
+Test on TestPyPI first: twine upload --repository testpypi dist/*
 
 ---
 

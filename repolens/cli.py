@@ -218,26 +218,23 @@ def query(question: str, repo: str, store: str | None, no_llm: bool, n: int):
     click.echo(f"Store:  {store_path}")
     click.echo("")
 
-    with click.progressbar(length=2, label="Retrieving") as bar:
-        results = retrieve(
-            query=question,
-            store_path=store_path,
-            openai_client=client,
-        )
-        bar.update(1)
+    click.echo("Searching...")
+    results = retrieve(
+        query=question,
+        store_path=store_path,
+        openai_client=client,
+    )
 
-        if no_llm or not results:
-            bar.update(1)
-            click.echo("")
-            click.echo(format_results(results))
-            return
+    if no_llm or not results:
+        click.echo(format_results(results))
+        return
 
-        output = answer_query(
-            query=question,
-            results=results,
-            openai_client=client,
-        )
-        bar.update(1)
+    click.echo("Generating answer...")
+    output = answer_query(
+        query=question,
+        results=results,
+        openai_client=client,
+    )
 
     click.echo("── Answer ──────────────────────────────────")
     click.echo(output["answer"])

@@ -5,10 +5,24 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "repolens"
 version = "0.1.0"
-description = "Local-first codebase context engine"
+description = "Local-first codebase context engine — ask plain English questions about any Python codebase"
 readme = "README.md"
-license = { text = "MIT" }
+license = "MIT"
 requires-python = ">=3.11"
+authors = [
+    { name = "Patrick Chung" },
+]
+keywords = ["codebase", "search", "embeddings", "RAG", "developer-tools", "AST", "code-search"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Utilities",
+]
 dependencies = [
     "tree-sitter>=0.21",
     "tree-sitter-python>=0.21",
@@ -18,6 +32,7 @@ dependencies = [
     "uvicorn>=0.29",
     "click>=8.1",
     "python-dotenv>=1.0",
+    "tiktoken>=0.7",
 ]
 
 [project.optional-dependencies]
@@ -32,11 +47,19 @@ dev = [
 repolens = "repolens.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/YOUR_GITHUB_USERNAME/repolens"
-Issues = "https://github.com/YOUR_GITHUB_USERNAME/repolens/issues"
+Homepage = "https://github.com/TheAsianFish/repolens"
+Issues = "https://github.com/TheAsianFish/repolens/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
+exclude = ["tests*", "build*"]
+
+# Ship the pre-built React bundle with the package so the FastAPI server
+# can serve the SPA without Node.js being installed on the user's machine.
+# The dist files are copied from frontend/dist into repolens/dist before
+# running python -m build (see build instructions in README).
+[tool.setuptools.package-data]
+repolens = ["dist/**/*", "dist/*"]
 
 [tool.ruff]
 line-length = 88

@@ -11,6 +11,7 @@ from repolens.llm import (
     build_prompt,
     parse_citations,
     answer_query,
+    _strip_citations_block,
     MAX_CONTEXT_CHUNKS,
 )
 
@@ -142,12 +143,46 @@ class TestParseCitations:
         assert citations[1]["label"] == "[2]"
 
 
+class TestStripCitationsBlock:
+
+    def test_strips_citations_header(self):
+        text = "Auth works via [1].\n\nCITATIONS\n[1] auth.py lines 1-5"
+        assert _strip_citations_block(text) == "Auth works via [1]."
+
+    def test_strips_citations_with_colon(self):
+        text = "Answer [1].\n\nCITATIONS:\n[1] auth.py lines 1-5"
+        assert _strip_citations_block(text) == "Answer [1]."
+
+    def test_strips_citations_case_insensitive(self):
+        text = "Answer [1].\n\ncitations\n[1] auth.py"
+        assert _strip_citations_block(text) == "Answer [1]."
+
+    def test_no_citations_block_returns_unchanged(self):
+        text = "Auth happens in [1]. No citations block here."
+        assert _strip_citations_block(text) == text
+
+    def test_empty_string_returns_empty(self):
+        assert _strip_citations_block("") == ""
+
+    def test_trailing_whitespace_stripped(self):
+        text = "Answer [1].   \n\nCITATIONS\n[1] auth.py"
+        assert _strip_citations_block(text) == "Answer [1]."
+
+
 class TestAnswerQuery:
 
     def test_returns_answer_text(self):
         client = mock_openai("Auth happens in [1].")
         results = [make_result()]
         output = answer_query("how does auth work", results, client)
+        assert "Auth happens in [1]." in output["answer"]
+
+    def test_citations_block_stripped_from_answer(self):
+        raw = "Auth happens in [1].\n\nCITATIONS\n[1] auth.py lines 1-2"
+        client = mock_openai(raw)
+        results = [make_result()]
+        output = answer_query("how does auth work", results, client)
+        assert "CITATIONS" not in output["answer"]
         assert "Auth happens in [1]." in output["answer"]
 
     def test_returns_citations(self):

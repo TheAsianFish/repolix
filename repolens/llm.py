@@ -143,6 +143,25 @@ def parse_citations(response_text: str, labeled_chunks: list[dict]) -> list[dict
     return citations
 
 
+def _strip_citations_block(text: str) -> str:
+    """
+    Remove the CITATIONS block the LLM appends to its response.
+
+    The system prompt instructs the LLM to end its answer with a
+    CITATIONS section. We use that block only to parse citation labels
+    via parse_citations. After parsing, we strip it so callers receive
+    clean prose without a duplicate citation list.
+
+    Matches any line whose stripped content starts with "CITATIONS"
+    (case-insensitive). Everything from that line onward is dropped.
+    """
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.strip().upper().startswith("CITATIONS"):
+            return "\n".join(lines[:i]).rstrip()
+    return text
+
+
 def answer_query(
     query: str,
     results: list[dict],
@@ -183,10 +202,19 @@ def answer_query(
     )
 
     response_text = response.choices[0].message.content or ""
+
+    # Parse citations before stripping — parse_citations finds inline
+    # labels [1], [2] etc. throughout the prose, not just in the block.
     citations = parse_citations(response_text, labeled_chunks)
 
+    # Strip the CITATIONS block the LLM appends. The CLI and API both
+    # render their own formatted citation sections from the parsed
+    # citation objects above. Removing it here fixes both in one place
+    # and frees output tokens for actual answer content.
+    answer_text = _strip_citations_block(response_text)
+
     return {
-        "answer": response_text,
+        "answer": answer_text,
         "citations": citations,
         "chunks_used": len(labeled_chunks),
     }

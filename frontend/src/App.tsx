@@ -42,7 +42,7 @@ export default function App() {
     >
       <header style={{ marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '1.6rem', fontWeight: 700, margin: 0 }}>
-          🔍 codesight
+          🔍 repolix
         </h1>
         <p style={{ color: '#64748b', margin: '0.25rem 0 0' }}>
           Local-first codebase context engine

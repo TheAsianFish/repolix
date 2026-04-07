@@ -1,5 +1,5 @@
 """
-Tests for codesight/api.py.
+Tests for repolix/api.py.
 
 Uses FastAPI's TestClient which runs the ASGI app in-process
 without a real server. index_repo, retrieve, and answer_query
@@ -9,7 +9,7 @@ are mocked throughout.
 import pytest
 from unittest.mock import patch
 from fastapi.testclient import TestClient
-from codesight.api import app
+from repolix.api import app
 
 client = TestClient(app)
 
@@ -55,8 +55,8 @@ class TestHealthEndpoint:
 class TestIndexEndpoint:
 
     def test_index_valid_repo(self, tmp_path):
-        with patch("codesight.api.get_openai_client"), \
-             patch("codesight.api.index_repo",
+        with patch("repolix.api.get_openai_client"), \
+             patch("repolix.api.index_repo",
                    return_value=mock_index_stats()):
             response = client.post("/index", json={
                 "repo_path": str(tmp_path),
@@ -69,7 +69,7 @@ class TestIndexEndpoint:
         assert data["total_chunks"] == 10
 
     def test_index_invalid_repo_returns_400(self):
-        with patch("codesight.api.get_openai_client"):
+        with patch("repolix.api.get_openai_client"):
             response = client.post("/index", json={
                 "repo_path": "/nonexistent/path",
                 "force": False,
@@ -77,7 +77,7 @@ class TestIndexEndpoint:
         assert response.status_code == 400
 
     def test_index_missing_api_key_returns_500(self, tmp_path):
-        with patch("codesight.api.os.getenv", return_value=None):
+        with patch("repolix.api.os.getenv", return_value=None):
             response = client.post("/index", json={
                 "repo_path": str(tmp_path),
             })
@@ -87,7 +87,7 @@ class TestIndexEndpoint:
 class TestQueryEndpoint:
 
     def test_query_no_index_returns_404(self, tmp_path):
-        with patch("codesight.api.get_openai_client"):
+        with patch("repolix.api.get_openai_client"):
             response = client.post("/query", json={
                 "question": "how does auth work",
                 "repo_path": str(tmp_path),
@@ -95,7 +95,7 @@ class TestQueryEndpoint:
         assert response.status_code == 404
 
     def test_query_returns_answer_and_citations(self, tmp_path):
-        store = tmp_path / ".codesight"
+        store = tmp_path / ".repolix"
         store.mkdir()
         (store / "chroma.sqlite3").touch()
 
@@ -112,9 +112,9 @@ class TestQueryEndpoint:
             "chunks_used": 1,
         }
 
-        with patch("codesight.api.get_openai_client"), \
-             patch("codesight.api.retrieve", return_value=mock_results()), \
-             patch("codesight.api.answer_query", return_value=mock_answer):
+        with patch("repolix.api.get_openai_client"), \
+             patch("repolix.api.retrieve", return_value=mock_results()), \
+             patch("repolix.api.answer_query", return_value=mock_answer):
             response = client.post("/query", json={
                 "question": "how does auth work",
                 "repo_path": str(tmp_path),
@@ -127,13 +127,13 @@ class TestQueryEndpoint:
         assert len(data["chunks"]) == 1
 
     def test_query_no_llm_skips_answer(self, tmp_path):
-        store = tmp_path / ".codesight"
+        store = tmp_path / ".repolix"
         store.mkdir()
         (store / "chroma.sqlite3").touch()
 
-        with patch("codesight.api.get_openai_client"), \
-             patch("codesight.api.retrieve", return_value=mock_results()), \
-             patch("codesight.api.answer_query") as mock_llm:
+        with patch("repolix.api.get_openai_client"), \
+             patch("repolix.api.retrieve", return_value=mock_results()), \
+             patch("repolix.api.answer_query") as mock_llm:
             response = client.post("/query", json={
                 "question": "query",
                 "repo_path": str(tmp_path),
@@ -153,7 +153,7 @@ class TestStatusEndpoint:
         assert response.json()["indexed"] is False
 
     def test_status_indexed(self, tmp_path):
-        store = tmp_path / ".codesight"
+        store = tmp_path / ".repolix"
         store.mkdir()
         (store / "chroma.sqlite3").touch()
         response = client.get(f"/status?repo_path={tmp_path}")

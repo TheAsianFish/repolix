@@ -1,5 +1,5 @@
 """
-Tests for codesight/cli.py.
+Tests for repolix/cli.py.
 
 Uses Click's test runner (CliRunner) which invokes CLI commands
 in-process without spawning a subprocess. OpenAI and store
@@ -9,7 +9,7 @@ functions are mocked throughout.
 import pytest
 from unittest.mock import patch, MagicMock
 from click.testing import CliRunner
-from codesight.cli import main, _confidence_label
+from repolix.cli import main, _confidence_label
 
 
 def mock_index_repo_result(
@@ -48,8 +48,8 @@ class TestConfidenceLabel:
 class TestIndexCommand:
 
     def test_index_succeeds_with_valid_repo(self, tmp_path):
-        with patch("codesight.cli.get_openai_client") as mock_client, \
-             patch("codesight.cli.index_repo",
+        with patch("repolix.cli.get_openai_client") as mock_client, \
+             patch("repolix.cli.index_repo",
                    return_value=mock_index_repo_result()) as mock_index:
             mock_client.return_value = MagicMock()
             runner = CliRunner()
@@ -58,8 +58,8 @@ class TestIndexCommand:
             assert "Index complete" in result.output
 
     def test_index_shows_file_counts(self, tmp_path):
-        with patch("codesight.cli.get_openai_client"), \
-             patch("codesight.cli.index_repo",
+        with patch("repolix.cli.get_openai_client"), \
+             patch("repolix.cli.index_repo",
                    return_value=mock_index_repo_result(
                        total=5, indexed=4, skipped=1, chunks=20
                    )):
@@ -70,8 +70,8 @@ class TestIndexCommand:
             assert "20" in result.output
 
     def test_index_exits_nonzero_on_errors(self, tmp_path):
-        with patch("codesight.cli.get_openai_client"), \
-             patch("codesight.cli.index_repo",
+        with patch("repolix.cli.get_openai_client"), \
+             patch("repolix.cli.index_repo",
                    return_value=mock_index_repo_result(
                        errors=["file.py: parse error"]
                    )):
@@ -80,7 +80,7 @@ class TestIndexCommand:
             assert result.exit_code == 1
 
     def test_index_missing_api_key_shows_error(self, tmp_path):
-        with patch("codesight.cli.os.getenv", return_value=None):
+        with patch("repolix.cli.os.getenv", return_value=None):
             runner = CliRunner()
             result = runner.invoke(main, ["index", str(tmp_path)])
             assert "OPENAI_API_KEY" in result.output
@@ -89,7 +89,7 @@ class TestIndexCommand:
 class TestQueryCommand:
 
     def test_query_no_index_shows_helpful_error(self, tmp_path):
-        with patch("codesight.cli.get_openai_client"):
+        with patch("repolix.cli.get_openai_client"):
             runner = CliRunner()
             result = runner.invoke(
                 main,
@@ -98,7 +98,7 @@ class TestQueryCommand:
             assert "No index found" in result.output
 
     def test_query_no_llm_flag_skips_llm(self, tmp_path):
-        store = tmp_path / ".codesight"
+        store = tmp_path / ".repolix"
         store.mkdir()
         (store / "chroma.sqlite3").touch()
 
@@ -118,9 +118,9 @@ class TestQueryCommand:
             "rerank_score": 0.32,
         }]
 
-        with patch("codesight.cli.get_openai_client"), \
-             patch("codesight.cli.retrieve", return_value=mock_results), \
-             patch("codesight.cli.answer_query") as mock_llm:
+        with patch("repolix.cli.get_openai_client"), \
+             patch("repolix.cli.retrieve", return_value=mock_results), \
+             patch("repolix.cli.answer_query") as mock_llm:
             runner = CliRunner()
             result = runner.invoke(
                 main,
@@ -130,7 +130,7 @@ class TestQueryCommand:
             mock_llm.assert_not_called()
 
     def test_query_shows_answer_and_citations(self, tmp_path):
-        store = tmp_path / ".codesight"
+        store = tmp_path / ".repolix"
         store.mkdir()
         (store / "chroma.sqlite3").touch()
 
@@ -163,9 +163,9 @@ class TestQueryCommand:
             "chunks_used": 1,
         }
 
-        with patch("codesight.cli.get_openai_client"), \
-             patch("codesight.cli.retrieve", return_value=mock_results), \
-             patch("codesight.cli.answer_query", return_value=mock_answer):
+        with patch("repolix.cli.get_openai_client"), \
+             patch("repolix.cli.retrieve", return_value=mock_results), \
+             patch("repolix.cli.answer_query", return_value=mock_answer):
             runner = CliRunner()
             result = runner.invoke(
                 main,

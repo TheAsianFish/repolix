@@ -1,5 +1,5 @@
 """
-Tests for codesight/chunker.py.
+Tests for repolix/chunker.py.
 
 Covers original chunking behavior plus new metadata extraction:
 call graph collection and docstring extraction.
@@ -7,7 +7,7 @@ call graph collection and docstring extraction.
 
 import pytest
 from pathlib import Path
-from codesight.chunker import chunk_file, MAX_CHUNK_TOKENS
+from repolix.chunker import chunk_file, MAX_CHUNK_TOKENS
 
 
 def write_py(path: Path, source: str) -> Path:

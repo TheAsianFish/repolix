@@ -1,7 +1,7 @@
 """
 conftest.py
 
-Session-level test setup for codesight.
+Session-level test setup for repolix.
 
 frontend/dist/index.html must exist before the TestClient in test_api.py is
 initialised. TestClient(app) is a module-level expression in test_api.py, so it
@@ -20,5 +20,5 @@ _DIST = Path(__file__).parent.parent / "frontend" / "dist"
 if not _DIST.exists():
     _DIST.mkdir(parents=True, exist_ok=True)
     (_DIST / "index.html").write_text(
-        "<!DOCTYPE html><html><body>codesight test stub</body></html>\n"
+        "<!DOCTYPE html><html><body>repolix test stub</body></html>\n"
     )

@@ -1,5 +1,5 @@
 """
-Tests for codesight/llm.py.
+Tests for repolix/llm.py.
 
 OpenAI calls are mocked. We test prompt construction, citation
 parsing, and the full answer_query pipeline without hitting the API.
@@ -7,7 +7,7 @@ parsing, and the full answer_query pipeline without hitting the API.
 
 import pytest
 from unittest.mock import MagicMock
-from codesight.llm import (
+from repolix.llm import (
     build_prompt,
     parse_citations,
     answer_query,

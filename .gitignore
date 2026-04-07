@@ -17,8 +17,8 @@ ENV/
 # Environment variables — NEVER commit the real .env
 .env
 
-# codesight data
-.codesight/
+# repolix data
+.repolix/
 .chroma/
 
 # Testing and tooling

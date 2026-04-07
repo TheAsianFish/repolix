@@ -1,5 +1,5 @@
 """
-Tests for codesight/store.py.
+Tests for repolix/store.py.
 
 OpenAI calls are mocked — tests never hit the network.
 ChromaDB uses tmp_path for isolation between tests.
@@ -8,8 +8,8 @@ ChromaDB uses tmp_path for isolation between tests.
 import pytest
 from pathlib import Path
 from unittest.mock import MagicMock, patch
-from codesight.chunker import Chunk
-from codesight.store import (
+from repolix.chunker import Chunk
+from repolix.store import (
     hash_file,
     build_embed_text,
     chunk_to_metadata,

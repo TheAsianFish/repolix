@@ -3,7 +3,7 @@ requires = ["setuptools>=68,<77", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "codesight"
+name = "repolix"
 version = "0.1.0"
 description = "Local-first codebase context engine — ask plain English questions about any Python codebase"
 readme = "README.md"
@@ -44,11 +44,11 @@ dev = [
 ]
 
 [project.scripts]
-codesight = "codesight.cli:main"
+repolix = "repolix.cli:main"
 
 [project.urls]
-Homepage = "https://github.com/TheAsianFish/codesight"
-Issues = "https://github.com/TheAsianFish/codesight/issues"
+Homepage = "https://github.com/TheAsianFish/repolix"
+Issues = "https://github.com/TheAsianFish/repolix/issues"
 
 [tool.setuptools.packages.find]
 where = ["."]
@@ -56,10 +56,10 @@ exclude = ["tests*", "build*"]
 
 # Ship the pre-built React bundle with the package so the FastAPI server
 # can serve the SPA without Node.js being installed on the user's machine.
-# The dist files are copied from frontend/dist into codesight/dist before
+# The dist files are copied from frontend/dist into repolix/dist before
 # running python -m build (see build instructions in README).
 [tool.setuptools.package-data]
-codesight = ["dist/**/*", "dist/*"]
+repolix = ["dist/**/*", "dist/*"]
 
 [tool.ruff]
 line-length = 88

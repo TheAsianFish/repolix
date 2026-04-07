@@ -1,5 +1,5 @@
 """
-Tests for codesight/retriever.py — Milestone 6: hybrid search.
+Tests for repolix/retriever.py — Milestone 6: hybrid search.
 
 query_chunks and keyword_search are mocked throughout.
 Tests cover RRF merging logic, re-ranking, and format_results.
@@ -7,7 +7,7 @@ Tests cover RRF merging logic, re-ranking, and format_results.
 
 import pytest
 from unittest.mock import MagicMock, patch
-from codesight.retriever import (
+from repolix.retriever import (
     retrieve,
     reciprocal_rank_fusion,
     rerank,
@@ -137,14 +137,14 @@ class TestRetrieve:
         many = [make_result(name=f"func_{i}", start_line=i,
                             file_path=f"/repo/{i}.py")
                 for i in range(10)]
-        with patch("codesight.retriever.query_chunks", return_value=many), \
-             patch("codesight.retriever.keyword_search", return_value=[]):
+        with patch("repolix.retriever.query_chunks", return_value=many), \
+             patch("repolix.retriever.keyword_search", return_value=[]):
             results = retrieve("query", "/fake/db", MagicMock())
         assert len(results) <= RETURN_N
 
     def test_returns_empty_when_both_searches_empty(self):
-        with patch("codesight.retriever.query_chunks", return_value=[]), \
-             patch("codesight.retriever.keyword_search", return_value=[]):
+        with patch("repolix.retriever.query_chunks", return_value=[]), \
+             patch("repolix.retriever.keyword_search", return_value=[]):
             results = retrieve("query", "/fake/db", MagicMock())
         assert results == []
 
@@ -152,15 +152,15 @@ class TestRetrieve:
         raw = [make_result(name=f"func_{i}", start_line=i,
                            file_path=f"/repo/{i}.py")
                for i in range(3)]
-        with patch("codesight.retriever.query_chunks", return_value=raw), \
-             patch("codesight.retriever.keyword_search", return_value=[]):
+        with patch("repolix.retriever.query_chunks", return_value=raw), \
+             patch("repolix.retriever.keyword_search", return_value=[]):
             results = retrieve("query", "/fake/db", MagicMock())
         assert all("rerank_score" in r for r in results)
 
     def test_keyword_only_results_still_returned(self):
         keyword_result = make_result(name="exact_match_func")
-        with patch("codesight.retriever.query_chunks", return_value=[]), \
-             patch("codesight.retriever.keyword_search",
+        with patch("repolix.retriever.query_chunks", return_value=[]), \
+             patch("repolix.retriever.keyword_search",
                    return_value=[keyword_result]):
             results = retrieve("exact_match_func", "/fake/db", MagicMock())
         assert len(results) == 1

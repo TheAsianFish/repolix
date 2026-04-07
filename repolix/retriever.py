@@ -16,7 +16,7 @@ Pipeline:
 
 from pathlib import Path
 from openai import OpenAI
-from codesight.store import query_chunks, keyword_search
+from repolix.store import query_chunks, keyword_search
 
 # How many results to retrieve from each search before merging.
 # Over-retrieving gives RRF and re-ranking room to work.

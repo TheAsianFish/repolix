@@ -1,7 +1,7 @@
 """
 api.py
 
-FastAPI backend for codesight. Exposes the indexing and query
+FastAPI backend for repolix. Exposes the indexing and query
 pipeline over HTTP so the React frontend can consume it.
 
 Endpoints:
@@ -21,21 +21,21 @@ from openai import OpenAI
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
-from codesight.store import index_repo
-from codesight.retriever import retrieve
-from codesight.llm import answer_query
+from repolix.store import index_repo
+from repolix.retriever import retrieve
+from repolix.llm import answer_query
 
 load_dotenv()
 
 # When installed via pip, the pre-built React bundle is copied into the
-# codesight package directory (codesight/dist/) before building the wheel.
+# repolix package directory (repolix/dist/) before building the wheel.
 # In development, fall back to the Vite output at frontend/dist/.
 _PKG_DIST = Path(__file__).parent / "dist"
 _DEV_DIST = Path(__file__).parent.parent / "frontend" / "dist"
 DIST_DIR = _PKG_DIST if _PKG_DIST.exists() else _DEV_DIST
 
 app = FastAPI(
-    title="codesight",
+    title="repolix",
     description="Local-first codebase context engine",
     version="0.1.0",
 )
@@ -67,7 +67,7 @@ def get_openai_client() -> OpenAI:
 
 def get_store_path(repo_path: str) -> Path:
     """Resolve the ChromaDB store path for a given repo."""
-    return Path(repo_path).resolve() / ".codesight"
+    return Path(repo_path).resolve() / ".repolix"
 
 
 # ── Request / Response Models ─────────────────────────────────────────────────

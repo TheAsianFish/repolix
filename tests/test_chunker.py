@@ -111,6 +111,21 @@ def foo():
         chunks = chunk_file(f)
         assert chunks[0].token_count == MAX_CHUNK_TOKENS
 
+    def test_oversized_chunk_is_marked_truncated(self, tmp_path):
+        body = "\n".join(f"    x_{i} = {i}" for i in range(200))
+        source = f"def big():\n{body}\n"
+        f = write_py(tmp_path / "a.py", source)
+        chunks = chunk_file(f)
+        assert chunks[0].is_truncated is True
+
+    def test_normal_chunk_is_not_truncated(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def foo():
+    return 42
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].is_truncated is False
+
     def test_empty_file_returns_empty_list(self, tmp_path):
         f = write_py(tmp_path / "a.py", "")
         assert chunk_file(f) == []

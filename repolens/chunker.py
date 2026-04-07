@@ -49,6 +49,7 @@ class Chunk:
     calls: list[str]        # Names of functions called within this chunk
     docstring: str | None   # First string literal if used as docstring
     parent_class: str | None   # Enclosing class name for methods
+    is_truncated: bool      # True if source was cut at MAX_CHUNK_TOKENS
 
 
 def count_tokens(text: str) -> int:
@@ -228,11 +229,13 @@ def _walk_tree(
             ].decode("utf-8")
 
             token_count = count_tokens(source_text)
+            is_truncated = False
 
             if token_count > MAX_CHUNK_TOKENS:
                 encoded = _TOKENIZER.encode(source_text)
                 source_text = _TOKENIZER.decode(encoded[:MAX_CHUNK_TOKENS])
                 token_count = MAX_CHUNK_TOKENS
+                is_truncated = True
 
             name = extract_name(child, source_bytes)
 
@@ -247,6 +250,7 @@ def _walk_tree(
                 calls=extract_calls(child, source_bytes),
                 docstring=extract_docstring(child, source_bytes),
                 parent_class=enclosing_class,
+                is_truncated=is_truncated,
             ))
 
             # For class definitions, descend into the body so methods

@@ -145,6 +145,7 @@ def chunk_to_metadata(chunk: Chunk, repo_root: str | None = None) -> dict:
         "calls": ",".join(chunk.calls),
         "docstring": chunk.docstring or "",
         "parent_class": chunk.parent_class or "",
+        "is_truncated": chunk.is_truncated,
     }
 
 
@@ -295,6 +296,7 @@ def query_chunks(
             "calls": meta["calls"].split(",") if meta["calls"] else [],
             "docstring": meta["docstring"] or None,
             "parent_class": meta.get("parent_class") or None,
+            "is_truncated": meta.get("is_truncated", False),
             "distance": dist,
         })
 
@@ -366,6 +368,7 @@ def keyword_search(
                 "end_line": meta["end_line"],
                 "calls": meta["calls"].split(",") if meta["calls"] else [],
                 "docstring": meta["docstring"] or None,
+                "is_truncated": meta.get("is_truncated", False),
                 "distance": 0.0,
             }
 

@@ -92,6 +92,7 @@ def build_prompt(query: str, results: list[dict]) -> tuple[str, list[dict]]:
             "end_line": end,
             "name": name,
             "parent_class": parent,
+            "is_truncated": chunk.get("is_truncated", False),
         })
 
     chunks_text = "\n\n".join(chunk_blocks)
@@ -138,6 +139,7 @@ def parse_citations(response_text: str, labeled_chunks: list[dict]) -> list[dict
                 "end_line": chunk["end_line"],
                 "name": chunk["name"],
                 "parent_class": chunk.get("parent_class"),
+                "is_truncated": chunk.get("is_truncated", False),
             })
 
     return citations

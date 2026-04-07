@@ -234,7 +234,8 @@ def query(question: str, repo: str, store: str | None, no_llm: bool, n: int):
             name = citation["name"]
             parent = citation.get("parent_class")
             context = f"{parent}.{name}" if parent else name
-            click.echo(f"  {label} {path}:{start}-{end}  ({context})")
+            truncated = " [truncated]" if citation.get("is_truncated") else ""
+            click.echo(f"  {label} {path}:{start}-{end}  ({context}){truncated}")
     else:
         click.echo("  No citations extracted.")
 

@@ -34,6 +34,7 @@ def make_chunk(**kwargs) -> Chunk:
         calls=["validate_token"],
         docstring="Validates user credentials.",
         parent_class=None,
+        is_truncated=False,
     )
     defaults.update(kwargs)
     return Chunk(**defaults)
@@ -127,6 +128,16 @@ class TestChunkToMetadata:
         meta = chunk_to_metadata(chunk)
         for v in meta.values():
             assert isinstance(v, (str, int, float, bool))
+
+    def test_is_truncated_false_stored_as_bool(self):
+        chunk = make_chunk(is_truncated=False)
+        meta = chunk_to_metadata(chunk)
+        assert meta["is_truncated"] is False
+
+    def test_is_truncated_true_stored_as_bool(self):
+        chunk = make_chunk(is_truncated=True)
+        meta = chunk_to_metadata(chunk)
+        assert meta["is_truncated"] is True
 
 
 # ── index_chunks ──────────────────────────────────────────────────────────────

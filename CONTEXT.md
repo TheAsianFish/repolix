@@ -29,7 +29,7 @@ Published on PyPI as `repolix` (previously developed under the name
 | LLM | gpt-5.4-mini | Fast, cheap, strong instruction following |
 | Web server | FastAPI | Async, simple, automatic validation |
 | Frontend | React + TypeScript | SPA served by FastAPI from frontend/dist; dev via Vite at localhost:3000 |
-| CLI | Click | Python CLI standard |
+| CLI | Click + Rich | Click handles commands/args; Rich handles styled terminal output |
 | Install | pip install repolix | One command |
 
 ---
@@ -149,6 +149,15 @@ The CLI prints "Searching..." before retrieval and "Generating
 answer..." before the LLM call. A 2-step progress bar was not a
 real progress indicator and mislabeled the LLM step as "Retrieving".
 
+**Rich library used for CLI output formatting.**
+rich>=13.0.0 added as a dependency. Click handles command parsing;
+Rich handles all terminal output: Panel for answers and index
+summaries, Rule for citation separators, markup for dim/bold/cyan
+styling. Console is created inside each command function (not at
+module level) so Click's CliRunner can correctly capture output in
+tests — CliRunner patches sys.stdout after module load, so a
+module-level Console would hold a stale reference to real stdout.
+
 **FastAPI serves the built React SPA as static files.**
 api.py mounts frontend/dist at "/" after all API routes. A catch-all
 GET /{full_path:path} route returns the requested file if it exists
@@ -234,8 +243,22 @@ pytest output over this table.
 | 10 | Polish + ship | Complete |
 | 11 | Post-V1 output quality + UX fixes | Complete |
 | 12 | Rename codesight → repolix; publish to PyPI as repolix 0.1.0 | Complete |
+| 13 | Rich CLI output polish + LLM system prompt update | Complete |
 
-V1 shipped as repolix 0.1.0 on PyPI. Post-V1 polish complete. Next work begins on V2.
+V1 shipped as repolix 0.1.0 on PyPI. Post-V1 polish complete. Milestone 13 (Rich CLI) complete.
+
+---
+
+## Milestone 13 — Rich CLI output + LLM system prompt
+
+| Change | Files |
+|---|---|
+| Add rich>=13.0.0 to dependencies | pyproject.toml |
+| Rewrite index command output: dim header, Rich Panel summary | repolix/cli.py |
+| Rewrite query command output: dim status, cyan Answer Panel, Rule + citation list, dim confidence footer | repolix/cli.py |
+| Console created inside each command function (not module-level) for CliRunner test compatibility | repolix/cli.py |
+| Replace system prompt: direct navigation assistant tone, no hedging language, explicit next-search guidance | repolix/llm.py |
+| Update test assertion "Index complete" → "Index Complete" to match Panel title casing | tests/test_cli.py |
 
 ---
 
@@ -399,3 +422,9 @@ Sequence:
 - Do not add a catch-all GET route before the StaticFiles mount without
   making it file-aware — a plain index.html catch-all will serve HTML
   for JS/CSS requests and break the frontend.
+- Do not create a module-level Rich Console — create it inside each
+  command function so Click's CliRunner patches sys.stdout before the
+  Console is constructed, ensuring test output capture works correctly.
+- Do not pass citation label strings like [1] directly into Rich markup
+  strings — use rich.markup.escape() to prevent them being interpreted
+  as markup tags.

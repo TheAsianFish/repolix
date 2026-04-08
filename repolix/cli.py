@@ -22,6 +22,7 @@ from openai import OpenAI
 from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
+from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
 
 from repolix.store import index_repo
@@ -131,27 +132,23 @@ def index(repo_path: str, store: str | None, force: bool):
 
     console.print(f"[dim]Indexing {repo}[/dim]")
 
-    # We use a mutable container for progress state so the callback
-    # closure can update it. Plain int variables in closures are
-    # read-only in Python — you cannot rebind them from inside the
-    # closure without nonlocal. A list sidesteps this.
-    progress_state = [0]
-
-    with click.progressbar(
-        length=1,
-        label="Indexing",
-        show_pos=True,
-        show_percent=True,
-    ) as bar:
+    with Progress(
+        TextColumn("{task.description}"),
+        BarColumn(),
+        MofNCompleteColumn(),
+        TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+        TimeRemainingColumn(),
+        console=console,
+        transient=False,
+    ) as progress:
+        # total=None starts the bar in indeterminate (spinner) mode until
+        # the first callback fires and we know the real file count.
+        task = progress.add_task("Indexing", total=None)
 
         def progress_callback(current: int, total: int, file_path: str):
-            # Update the progress bar length on first call when we
-            # know the total. Click allows dynamic length updates.
             if current == 1:
-                bar.length = total
-                bar.pos = 0
-            bar.update(1)
-            progress_state[0] = current
+                progress.update(task, total=total)
+            progress.update(task, completed=current)
 
         stats = index_repo(
             repo_path=repo,

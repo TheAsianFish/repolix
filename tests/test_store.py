@@ -14,6 +14,7 @@ from repolix.store import (
     build_embed_text,
     chunk_to_metadata,
     index_chunks,
+    index_repo,
     keyword_search,
     query_chunks,
     EMBEDDING_MODEL,
@@ -226,6 +227,91 @@ class TestIndexChunks:
 
         assert result["indexed"] == 0
         assert result["skipped"] is False
+
+
+# ── index_repo orphan cleanup ────────────────────────────────────────────────
+
+class TestIndexRepoOrphanCleanup:
+    """
+    Tests that index_repo removes chunks and hash entries for files
+    that were previously indexed but no longer exist in the repo.
+    """
+
+    def _make_repo_with_file(self, tmp_path: Path, filename: str, source: str) -> tuple[Path, Path]:
+        """Create a minimal repo with one Python file. Returns (repo_path, db_path)."""
+        repo = tmp_path / "repo"
+        repo.mkdir()
+        (repo / filename).write_text(source)
+        db_path = tmp_path / "db"
+        return repo, db_path
+
+    def test_deleted_file_chunks_are_removed(self, tmp_path):
+        repo, db_path = self._make_repo_with_file(tmp_path, "auth.py", "def foo(): pass")
+        client = mock_openai_client()
+
+        # chunk_file is imported locally inside index_repo from repolix.chunker,
+        # so we patch it there, not on repolix.store.
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = [make_chunk(file_path=str(repo / "auth.py"))]
+            index_repo(repo, db_path, client)
+
+        # Delete the file from disk so next run treats it as orphaned
+        (repo / "auth.py").unlink()
+
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = []
+            stats = index_repo(repo, db_path, client)
+
+        assert stats["cleaned"] == 1
+
+    def test_deleted_file_hash_is_removed(self, tmp_path):
+        repo, db_path = self._make_repo_with_file(tmp_path, "auth.py", "def foo(): pass")
+        client = mock_openai_client()
+
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = [make_chunk(file_path=str(repo / "auth.py"))]
+            index_repo(repo, db_path, client)
+
+        (repo / "auth.py").unlink()
+
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = []
+            index_repo(repo, db_path, client)
+
+        # Hash entry should be gone — next run of the same deleted path
+        # would not find a stored hash.
+        import chromadb
+        from chromadb.config import Settings
+        from repolix.store import HASHES_COLLECTION
+        db = chromadb.PersistentClient(path=str(db_path), settings=Settings(anonymized_telemetry=False))
+        hashes_col = db.get_or_create_collection(HASHES_COLLECTION, embedding_function=None)
+        stored = hashes_col.get(include=[])
+        assert str(repo / "auth.py") not in stored["ids"]
+
+    def test_existing_files_are_not_cleaned(self, tmp_path):
+        repo, db_path = self._make_repo_with_file(tmp_path, "auth.py", "def foo(): pass")
+        client = mock_openai_client()
+
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = [make_chunk(file_path=str(repo / "auth.py"))]
+            index_repo(repo, db_path, client)
+
+        # Run again with the file still present — nothing should be cleaned
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = [make_chunk(file_path=str(repo / "auth.py"))]
+            stats = index_repo(repo, db_path, client)
+
+        assert stats["cleaned"] == 0
+
+    def test_stats_cleaned_key_always_present(self, tmp_path):
+        repo, db_path = self._make_repo_with_file(tmp_path, "auth.py", "def foo(): pass")
+        client = mock_openai_client()
+
+        with patch("repolix.chunker.chunk_file") as mock_chunk:
+            mock_chunk.return_value = []
+            stats = index_repo(repo, db_path, client)
+
+        assert "cleaned" in stats
 
 
 # ── keyword_search ────────────────────────────────────────────────────────────

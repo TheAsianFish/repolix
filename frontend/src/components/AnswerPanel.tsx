@@ -1,10 +1,18 @@
 import type { Citation } from '../types'
 import { ConfidenceTag } from './ConfidenceTag'
 
+const skeletonStyle = `
+  @keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 0.7; }
+  }
+`
+
 interface Props {
   answer: string
   citations: Citation[]
   confidence: 'high' | 'medium' | 'low'
+  isLoading: boolean
 }
 
 function scrollToChunk(label: string) {
@@ -54,7 +62,7 @@ function renderAnswerWithBadges(text: string) {
   })
 }
 
-export function AnswerPanel({ answer, citations, confidence }: Props) {
+export function AnswerPanel({ answer, citations, confidence, isLoading }: Props) {
   return (
     <div
       style={{
@@ -84,44 +92,85 @@ export function AnswerPanel({ answer, citations, confidence }: Props) {
         >
           Answer
         </span>
-        <ConfidenceTag confidence={confidence} />
+        {isLoading ? (
+          <span style={{ width: 56, height: 22 }} aria-hidden />
+        ) : (
+          <ConfidenceTag confidence={confidence} />
+        )}
       </div>
-      <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-        {renderAnswerWithBadges(answer)}
-      </div>
-      {citations.length > 0 ? (
-        <div style={{ marginTop: 20 }}>
+      {isLoading ? (
+        <div>
+          <style>{skeletonStyle}</style>
           <div
             style={{
-              color: 'var(--text-secondary)',
-              fontSize: '11px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.08em',
-              marginBottom: 8,
+              height: '14px',
+              background: 'var(--surface-raised)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: '10px',
+              width: '92%',
+              animation: 'skeleton-pulse 1.4s ease-in-out infinite',
             }}
-          >
-            Citations
+          />
+          <div
+            style={{
+              height: '14px',
+              background: 'var(--surface-raised)',
+              borderRadius: 'var(--radius-sm)',
+              marginBottom: '10px',
+              width: '78%',
+              animation: 'skeleton-pulse 1.4s ease-in-out infinite 0.2s',
+            }}
+          />
+          <div
+            style={{
+              height: '14px',
+              background: 'var(--surface-raised)',
+              borderRadius: 'var(--radius-sm)',
+              width: '55%',
+              animation: 'skeleton-pulse 1.4s ease-in-out infinite 0.4s',
+            }}
+          />
+        </div>
+      ) : (
+        <>
+          <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {renderAnswerWithBadges(answer)}
           </div>
-          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {citations.map(c => (
-              <li
-                key={c.label}
-                className="mono"
+          {citations.length > 0 ? (
+            <div style={{ marginTop: 20 }}>
+              <div
                 style={{
-                  fontSize: '12.5px',
-                  color: 'var(--text-primary)',
-                  marginBottom: 4,
+                  color: 'var(--text-secondary)',
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  marginBottom: 8,
                 }}
               >
-                {c.label} {c.file_rel_path}:{c.start_line}–{c.end_line} ({c.name})
-                {c.is_truncated ? (
-                  <span style={{ color: 'var(--text-dim)' }}> [truncated]</span>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
+                Citations
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {citations.map(c => (
+                  <li
+                    key={c.label}
+                    className="mono"
+                    style={{
+                      fontSize: '12.5px',
+                      color: 'var(--text-primary)',
+                      marginBottom: 4,
+                    }}
+                  >
+                    {c.label} {c.file_rel_path}:{c.start_line}–{c.end_line} ({c.name})
+                    {c.is_truncated ? (
+                      <span style={{ color: 'var(--text-dim)' }}> [truncated]</span>
+                    ) : null}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+        </>
+      )}
     </div>
   )
 }

@@ -133,7 +133,7 @@ export default function App() {
     }
   }
 
-  const showAnswerPanel = answer !== null && answer !== ''
+  const showAnswerPanel = isQuerying || (answer !== null && answer !== '')
 
   return (
     <div className="app-root">
@@ -165,11 +165,16 @@ export default function App() {
           />
           {queryError ? <div className="app-query-error">{queryError}</div> : null}
           {showAnswerPanel ? (
-            <AnswerPanel answer={answer!} citations={citations} confidence={confidence!} />
+            <AnswerPanel
+              answer={answer ?? ''}
+              citations={citations}
+              confidence={confidence}
+              isLoading={isQuerying}
+            />
           ) : null}
         </div>
         <div className="app-col app-col-right">
-          <ChunkList chunks={chunks} hasQueried={hasQueried} />
+          <ChunkList chunks={chunks} hasQueried={hasQueried} isLoading={isQuerying} />
         </div>
       </div>
     </div>

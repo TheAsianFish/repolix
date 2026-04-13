@@ -87,7 +87,7 @@ def resolve_store_path(repo_path: Path, store: str | None) -> Path:
 
 
 @click.group()
-@click.version_option(version="0.2.0", prog_name="repolix")
+@click.version_option(version="0.1.1", prog_name="repolix")
 def main():
     """
     repolix — local-first codebase context engine.

@@ -258,10 +258,10 @@ pytest output over this table.
 | 11 | Post-V1 output quality + UX fixes | Complete |
 | 12 | Rename codesight → repolix; publish to PyPI as repolix 0.1.0 | Complete |
 | 13 | Rich CLI output polish + LLM system prompt update | Complete |
-| 14 | repolix 0.2.0 — React UI polish, citation path fixes, loading states | Complete |
+| 14 | repolix 0.1.1 — React UI polish, citation path fixes, loading states | Complete |
 
-V1 shipped as repolix 0.1.0 on PyPI. **0.2.0** bumps the package for the current
-React SPA and backend citation/display fixes. Milestone 13 (Rich CLI) complete.
+V1 shipped as repolix 0.1.0 on PyPI. **0.1.1** is a patch release (bugfixes and
+UI polish, same major/minor line as 0.1.0). Milestone 13 (Rich CLI) complete.
 
 ---
 

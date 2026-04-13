@@ -54,7 +54,7 @@ DIST_DIR = _PKG_DIST if _PKG_DIST.exists() else _DEV_DIST
 app = FastAPI(
     title="repolix",
     description="Local-first codebase context engine",
-    version="0.2.0",
+    version="0.1.1",
 )
 
 # CORS middleware allows the React frontend at localhost:3000 to make
@@ -267,7 +267,7 @@ async def status_endpoint(repo_path: str):
 @app.get("/health")
 async def health():
     """Health check endpoint. Returns 200 if the server is running."""
-    return {"status": "ok", "version": "0.2.0"}
+    return {"status": "ok", "version": "0.1.1"}
 
 
 # ── SPA catch-all ─────────────────────────────────────────────────────────────

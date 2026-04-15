@@ -142,11 +142,10 @@ print(x)
         with pytest.raises(ValueError, match="does not exist"):
             chunk_file(tmp_path / "ghost.py")
 
-    def test_raises_on_non_python_file(self, tmp_path):
+    def test_unknown_extension_returns_empty(self, tmp_path):
         f = tmp_path / "config.json"
         f.write_text("{}")
-        with pytest.raises(ValueError, match="Not a Python file"):
-            chunk_file(f)
+        assert chunk_file(f) == []
 
     def test_chunks_sorted_by_start_line(self, tmp_path):
         f = write_py(tmp_path / "a.py", """\
@@ -374,3 +373,134 @@ def value(self):
         value = next(c for c in chunks if c.name == "value")
         # @property is on line 3, not line 4 where `def` starts
         assert value.start_line == 3
+
+
+def write_js(path: Path, source: str) -> Path:
+    """Write JS/TS source text to a file, creating dirs as needed."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(source, encoding="utf-8")
+    return path
+
+
+class TestJsChunking:
+    """Tests for JavaScript and TypeScript chunking support."""
+
+    def test_chunk_function_declaration(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "function greet(name) { return name.toUpperCase(); }",
+        )
+        chunks = chunk_file(f)
+        assert len(chunks) == 1
+        assert chunks[0].node_type == "function"
+        assert chunks[0].name == "greet"
+
+    def test_chunk_arrow_function(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "const process = (x) => { return x * 2; }",
+        )
+        chunks = chunk_file(f)
+        assert len(chunks) == 1
+        assert chunks[0].node_type == "function"
+        assert chunks[0].name == "process"
+
+    def test_chunk_function_expression(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "const handler = function(req, res) { res.send('ok'); }",
+        )
+        chunks = chunk_file(f)
+        assert len(chunks) == 1
+        assert chunks[0].node_type == "function"
+        assert chunks[0].name == "handler"
+
+    def test_chunk_class_declaration(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "class AuthService {\n  validate(token) { return token !== null; }\n}",
+        )
+        chunks = chunk_file(f)
+        class_chunk = next((c for c in chunks if c.node_type == "class"), None)
+        method_chunk = next((c for c in chunks if c.node_type == "function"), None)
+        assert class_chunk is not None
+        assert class_chunk.name == "AuthService"
+        assert method_chunk is not None
+        assert method_chunk.name == "validate"
+        assert method_chunk.parent_class == "AuthService"
+
+    def test_chunk_tsx_file(self, tmp_path):
+        f = write_js(
+            tmp_path / "Button.tsx",
+            "const Button = ({ label }) => { return label; }",
+        )
+        chunks = chunk_file(f)
+        assert len(chunks) == 1
+        assert chunks[0].node_type == "function"
+        assert chunks[0].name == "Button"
+
+    def test_chunk_typescript_file(self, tmp_path):
+        f = write_js(
+            tmp_path / "config.ts",
+            "function parseConfig(raw: string): object { return JSON.parse(raw); }",
+        )
+        chunks = chunk_file(f)
+        assert len(chunks) == 1
+        assert chunks[0].node_type == "function"
+        assert chunks[0].name == "parseConfig"
+
+    def test_python_chunks_unaffected(self, tmp_path):
+        f = write_py(tmp_path / "a.py", """\
+def add(a, b):
+    return a + b
+
+class MyClass:
+    def method(self):
+        pass
+""")
+        chunks = chunk_file(f)
+        names = [c.name for c in chunks]
+        assert "add" in names
+        assert "MyClass" in names
+        assert "method" in names
+        method = next(c for c in chunks if c.name == "method")
+        assert method.parent_class == "MyClass"
+
+    def test_unknown_extension_returns_empty_js(self, tmp_path):
+        f = tmp_path / "script.rb"
+        f.write_text("def foo; end")
+        assert chunk_file(f) == []
+
+    def test_js_start_line_is_one_indexed(self, tmp_path):
+        f = write_js(tmp_path / "a.js", """\
+const x = 1;
+
+function foo() { return x; }
+""")
+        chunks = chunk_file(f)
+        assert chunks[0].start_line == 3
+
+    def test_js_calls_extracted(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "function foo() { bar(); obj.baz(); }",
+        )
+        chunks = chunk_file(f)
+        assert "bar" in chunks[0].calls
+        assert "baz" in chunks[0].calls
+
+    def test_js_token_count_positive(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "function greet(name) { return name; }",
+        )
+        chunks = chunk_file(f)
+        assert chunks[0].token_count > 0
+
+    def test_js_docstring_is_empty_string(self, tmp_path):
+        f = write_js(
+            tmp_path / "a.js",
+            "function greet(name) { return name; }",
+        )
+        chunks = chunk_file(f)
+        assert chunks[0].docstring == ""

@@ -1,6 +1,6 @@
 # repolix
 
-**Ask plain English questions about any Python codebase. Get answers with exact file and line citations. Runs entirely on your machine.**
+**Ask plain English questions about any Python, JavaScript, or TypeScript codebase. Get answers with exact file and line citations. Runs entirely on your machine.**
 
 ```
 $ repolix index ./myrepo
@@ -48,6 +48,8 @@ Your code never leaves your machine. No server. No accounts beyond an OpenAI API
 pip install repolix
 ```
 
+Latest PyPI release: **0.2.0** (Python plus JavaScript/TypeScript indexing).
+
 ### Set your API key
 
 ```bash
@@ -86,14 +88,14 @@ uvicorn repolix.api:app --port 8000
 
 Getting dropped into an unfamiliar codebase is painful. Documentation is outdated. Grep finds strings, not meaning. LLM chatbots hallucinate file names and function signatures because they have no access to your actual code.
 
-repolix indexes your code locally using AST-based chunking — every retrieved chunk is a complete function or class, never an arbitrary line slice. It runs entirely on your machine.
+repolix indexes your code locally using Tree-sitter AST chunking for `.py`, `.ts`, `.tsx`, `.js`, and `.jsx` — every retrieved chunk is a complete function or class, never an arbitrary line slice. It runs entirely on your machine.
 
 ---
 
 ## How it works
 
 **1. AST chunking**
-Tree-sitter parses each file into a syntax tree. repolix splits only at function and class boundaries — every chunk is semantically complete. Methods are tracked with their parent class for disambiguation.
+Tree-sitter parses each file into a syntax tree (Python and JavaScript/TypeScript grammars). repolix splits only at function and class boundaries — every chunk is semantically complete. Methods are tracked with their parent class for disambiguation.
 
 **2. Hybrid search**
 Queries run against OpenAI embeddings (vector search) and exact token matching (keyword search) simultaneously. Results are merged using Reciprocal Rank Fusion, a ranking algorithm that rewards consistency across search methods over dominance in just one.
@@ -167,7 +169,7 @@ bash start.sh
 
 ## Limitations
 
-- Python repos only (TypeScript support planned for V2)
+- JSDoc is not extracted into chunk text yet (JavaScript/TypeScript chunks use source and identifiers only)
 - Best on repos up to ~30k lines
 - Deeply nested functions are included in their parent chunk
 - Large functions (>300 tokens) are truncated at the chunk cap
@@ -177,7 +179,7 @@ bash start.sh
 
 ## Roadmap
 
-**V2** — TypeScript/JavaScript support, VS Code extension, dependency graph visualization
+**V2** — VS Code extension, dependency graph visualization (JavaScript/TypeScript indexing shipped in 0.2.0)
 
 **V3** — GitHub webhook re-indexing, multi-repo support, Slack bot
 

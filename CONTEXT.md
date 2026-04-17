@@ -8,9 +8,9 @@ Update this file at the end of every milestone before moving on.
 
 ## What repolix is
 
-A local-first codebase context engine. Point it at any Python repo,
-ask plain English questions, get back answers with exact file and
-line number citations. Code never leaves the user's machine.
+A local-first codebase context engine. Point it at any Python or
+JavaScript/TypeScript repo, ask plain English questions, get back answers
+with exact file and line number citations. Code never leaves the user's machine.
 Free and open source. Built for developer tooling.
 
 Published on PyPI as `repolix` (previously developed under the name
@@ -234,7 +234,7 @@ the embedding logic lives in store.py as _embed_texts and build_embed_text.
 | tests/test_api.py | 9 | Passing |
 
 Run all tests: pytest tests/ -v
-Total: 147 passing
+Total: 159 passing
 
 Note: test counts above are approximate. Always trust the actual
 pytest output over this table.
@@ -260,9 +260,12 @@ pytest output over this table.
 | 13 | Rich CLI output polish + LLM system prompt update | Complete |
 | 14 | repolix 0.1.1 — React UI polish, citation path fixes, loading states | Complete |
 | 15 | V2-1: JavaScript and TypeScript indexing support | Complete |
+| 16 | repolix 0.2.0 — PyPI minor release shipping JS/TS indexing | Complete |
 
-V1 shipped as repolix 0.1.0 on PyPI. **0.1.1** is a patch release (bugfixes and
-UI polish, same major/minor line as 0.1.0). Milestone 13 (Rich CLI) complete.
+V1 shipped as repolix 0.1.0 on PyPI; **0.1.1** followed (UI polish and fixes).
+**0.2.0** is the current line: same retrieval stack as 0.1.x plus `.ts`, `.tsx`,
+`.js`, `.jsx` in the walker/chunker (incremental hash-based re-index applies to
+all indexed extensions). Milestone 15 (JS/TS indexing) complete.
 
 ---
 

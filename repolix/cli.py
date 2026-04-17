@@ -25,6 +25,7 @@ from rich.panel import Panel
 from rich.progress import BarColumn, MofNCompleteColumn, Progress, TextColumn, TimeRemainingColumn
 from rich.rule import Rule
 
+from repolix import __version__
 from repolix.store import index_repo
 from repolix.retriever import retrieve, format_results, display_rel_path_from_meta
 from repolix.llm import answer_query
@@ -87,12 +88,12 @@ def resolve_store_path(repo_path: Path, store: str | None) -> Path:
 
 
 @click.group()
-@click.version_option(version="0.1.2", prog_name="repolix")
+@click.version_option(version=__version__, prog_name="repolix")
 def main():
     """
     repolix — local-first codebase context engine.
 
-    Point it at any Python repo, ask plain English questions,
+    Point it at a Python or JavaScript/TypeScript repo, ask plain English questions,
     get back answers with exact file and line citations.
     """
 

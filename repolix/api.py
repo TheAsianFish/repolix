@@ -21,6 +21,7 @@ from openai import OpenAI
 from pydantic import BaseModel
 from starlette.staticfiles import StaticFiles
 
+from repolix import __version__
 from repolix.store import index_repo
 from repolix.retriever import retrieve, display_rel_path_from_meta
 from repolix.llm import answer_query
@@ -54,7 +55,7 @@ DIST_DIR = _PKG_DIST if _PKG_DIST.exists() else _DEV_DIST
 app = FastAPI(
     title="repolix",
     description="Local-first codebase context engine",
-    version="0.1.1",
+    version=__version__,
 )
 
 # CORS middleware allows the React frontend at localhost:3000 to make
@@ -267,7 +268,7 @@ async def status_endpoint(repo_path: str):
 @app.get("/health")
 async def health():
     """Health check endpoint. Returns 200 if the server is running."""
-    return {"status": "ok", "version": "0.1.1"}
+    return {"status": "ok", "version": __version__}
 
 
 # ── SPA catch-all ─────────────────────────────────────────────────────────────

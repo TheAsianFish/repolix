@@ -18,7 +18,7 @@ function scoreToConfidence(score: number): 'high' | 'medium' | 'low' {
 export function ChunkCard({ chunk, isCited, citationLabel }: Props) {
   const [expanded, setExpanded] = useState(isCited)
   const [toggleHover, setToggleHover] = useState(false)
-  const showSource = isCited || expanded
+  const showSource = expanded
 
   const citedStyle: CSSProperties = {
     borderLeft: '3px solid var(--accent)',
@@ -103,17 +103,15 @@ export function ChunkCard({ chunk, isCited, citationLabel }: Props) {
           ) : null}
         </div>
       </div>
-      {!isCited ? (
-        <button
-          type="button"
-          onClick={() => setExpanded(!expanded)}
-          onMouseEnter={() => setToggleHover(true)}
-          onMouseLeave={() => setToggleHover(false)}
-          style={toggleStyle}
-        >
-          {showSource ? 'hide source' : 'show source'}
-        </button>
-      ) : null}
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        onMouseEnter={() => setToggleHover(true)}
+        onMouseLeave={() => setToggleHover(false)}
+        style={toggleStyle}
+      >
+        {showSource ? 'hide source' : 'show source'}
+      </button>
       {showSource ? (
         <pre
           style={{

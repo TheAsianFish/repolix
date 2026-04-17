@@ -1,7 +1,11 @@
 // Type-safe wrappers around the repolix FastAPI backend.
 // All functions throw on non-200 responses.
 
-const BASE_URL = 'http://localhost:8000'
+// Production: same-origin relative URLs (any uvicorn --port works).
+// Dev (Vite): defaults to API on :8000; override with VITE_API_URL in frontend/.env
+const BASE_URL = import.meta.env.DEV
+  ? (import.meta.env.VITE_API_URL ?? 'http://localhost:8000')
+  : ''
 
 /** Prefer FastAPI's `detail` field over raw JSON for UI messages. */
 export async function httpErrorMessage(res: Response): Promise<string> {

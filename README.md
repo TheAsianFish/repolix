@@ -83,8 +83,10 @@ repolix index ./path/to/repo --force
 
 ```bash
 uvicorn repolix.api:app --port 8000
-# Open http://localhost:8000
+# Open http://localhost:8000 (or whatever host/port you chose)
 ```
+
+Use any port; the bundled UI talks to the API on the **same** origin. Add `--host 0.0.0.0` if you need LAN access. For **`npm run dev`** (frontend on :3000), the dev server defaults to an API at `http://localhost:8000`; set `VITE_API_URL` in `frontend/.env` if the API uses another host or port.
 
 ---
 

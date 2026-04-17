@@ -261,11 +261,12 @@ pytest output over this table.
 | 14 | repolix 0.1.1 — React UI polish, citation path fixes, loading states | Complete |
 | 15 | V2-1: JavaScript and TypeScript indexing support | Complete |
 | 16 | repolix 0.2.0 — PyPI minor release shipping JS/TS indexing | Complete |
+| 17 | repolix 0.2.1 — Web UI same-origin fetches, CORS localhost/127.0.0.1, VITE_API_URL | Complete |
 
 V1 shipped as repolix 0.1.0 on PyPI; **0.1.1** followed (UI polish and fixes).
-**0.2.0** is the current line: same retrieval stack as 0.1.x plus `.ts`, `.tsx`,
-`.js`, `.jsx` in the walker/chunker (incremental hash-based re-index applies to
-all indexed extensions). Milestone 15 (JS/TS indexing) complete.
+**0.2.1** is the current line: **0.2.0** plus `.ts`, `.tsx`, `.js`, `.jsx` indexing
+and web UI fixes for bundled SPA (any `--port`) and dev (`VITE_API_URL`).
+Milestone 15 (JS/TS indexing) complete.
 
 ---
 

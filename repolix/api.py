@@ -58,14 +58,17 @@ app = FastAPI(
     version=__version__,
 )
 
-# CORS middleware allows the React frontend at localhost:3000 to make
-# requests to the FastAPI backend at localhost:8000. Without this,
-# browsers block cross-origin requests by default — this is called
-# the Same-Origin Policy. We allow all origins in development since
-# both client and server run on the user's local machine.
+# CORS for the Vite dev server and for any host/port mismatch (e.g. user
+# opens 127.0.0.1:8000 while fetch used to hardcode localhost:8000).
+_LOCAL_ORIGINS = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:8000",
+    "http://127.0.0.1:8000",
+]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=_LOCAL_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

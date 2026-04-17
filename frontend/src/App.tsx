@@ -78,7 +78,9 @@ export default function App() {
         setIndexStatus(`No index at ${s.store_path}. Click Index to build.`)
       }
     } catch {
-      setIndexStatus('Could not reach API (is the backend on port 8000?)')
+      setIndexStatus(
+        'Could not reach API (is the backend running? For Vite dev, check VITE_API_URL.)',
+      )
     }
   }, [repoPath])
 

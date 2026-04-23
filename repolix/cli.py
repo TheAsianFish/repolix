@@ -311,26 +311,25 @@ def query(question: str, repo: str, store: str | None, no_llm: bool, n: int):
             border_style="cyan",
         ))
 
-    console.print(Rule("[dim]Citations[/dim]", style="dim"))
+    if not navigation:
+        console.print(Rule("[dim]Citations[/dim]", style="dim"))
 
-    if output["citations"]:
-        for citation in output["citations"]:
-            label = citation["label"]
-            path = display_rel_path_from_meta(citation)
-            start = citation["start_line"]
-            end = citation["end_line"]
-            name = citation["name"]
-            parent = citation.get("parent_class")
-            context = f"{parent}.{name}" if parent else name
-            truncated = "  [dim][truncated][/dim]" if citation.get("is_truncated") else ""
-            # escape() prevents [1], [2] label brackets from being parsed
-            # as Rich markup tags.
-            console.print(
-                f"  [bold]{escape(label)}[/bold] {path}:{start}-{end}  ({context}){truncated}"
-            )
-    else:
-        console.print("  No citations extracted.")
+        if output["citations"]:
+            for citation in output["citations"]:
+                label = citation["label"]
+                path = display_rel_path_from_meta(citation)
+                start = citation["start_line"]
+                end = citation["end_line"]
+                name = citation["name"]
+                parent = citation.get("parent_class")
+                context = f"{parent}.{name}" if parent else name
+                truncated = "  [dim][truncated][/dim]" if citation.get("is_truncated") else ""
+                # escape() prevents [1], [2] label brackets from being parsed
+                # as Rich markup tags.
+                console.print(
+                    f"  [bold]{escape(label)}[/bold] {path}:{start}-{end}  ({context}){truncated}"
+                )
+        else:
+            console.print("  No citations extracted.")
 
-    top_score = results[0].get("rerank_score", 0.0) if results else 0.0
-    confidence = _confidence_label(top_score)
-    console.print(f"\n[dim]confidence: {confidence}[/dim]")
+    console.print(f"\n[dim]confidence: {escape(output.get('confidence', 'low'))}[/dim]")

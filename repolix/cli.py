@@ -244,7 +244,72 @@ def query(question: str, repo: str, store: str | None, no_llm: bool, n: int):
         openai_client=client,
     )
 
-    console.print(Panel(output["answer"], title="[bold cyan]Answer[/bold cyan]", border_style="cyan"))
+    sections = output.get("answer_sections")
+    navigation = output.get("navigation")
+    confidence = output.get("confidence", "low")
+
+    if navigation:
+        # Low confidence — render navigational response instead of answer
+        nav_lines = [
+            f"[yellow]{escape(navigation['message'])}[/yellow]",
+            "",
+        ]
+        for match in navigation.get("closest_matches", []):
+            name = escape(match.get("name", ""))
+            path = escape(match.get("file_rel_path", ""))
+            line = match.get("start_line", 0)
+            nav_lines.append(f"  [dim]→[/dim] [bold]{name}[/bold]  [dim]{path}:{line}[/dim]")
+
+        if navigation.get("suggestions"):
+            nav_lines.append("")
+            nav_lines.append("[dim]Suggestions:[/dim]")
+            for s in navigation["suggestions"]:
+                nav_lines.append(f"  [dim]·[/dim] {escape(s)}")
+
+        console.print(Panel(
+            "\n".join(nav_lines),
+            title="[bold yellow]Low Confidence[/bold yellow]",
+            border_style="yellow",
+        ))
+
+    elif sections:
+        # Structured answer — render each section distinctly
+        from rich.text import Text
+
+        content = Text()
+
+        # Direct answer — bold, full weight
+        direct = sections.get("answer", "").strip()
+        if direct:
+            content.append(direct + "\n", style="bold white")
+
+        # How it works — normal weight, separated by blank line
+        how = sections.get("how_it_works", "")
+        if how:
+            content.append("\n")
+            content.append("How it works\n", style="dim cyan")
+            content.append(how.strip() + "\n", style="default")
+
+        # Where to look next — dim, only if present
+        where = sections.get("where_to_look", "")
+        if where:
+            content.append("\n")
+            content.append("Where to look next\n", style="dim cyan")
+            content.append(where.strip() + "\n", style="dim")
+
+        console.print(Panel(
+            content,
+            title="[bold cyan]Answer[/bold cyan]",
+            border_style="cyan",
+        ))
+
+    else:
+        # Fallback — render raw answer string (handles LLM format failures)
+        console.print(Panel(
+            escape(output.get("answer") or "No answer returned."),
+            title="[bold cyan]Answer[/bold cyan]",
+            border_style="cyan",
+        ))
 
     console.print(Rule("[dim]Citations[/dim]", style="dim"))
 

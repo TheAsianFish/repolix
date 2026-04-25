@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { checkStatus, indexRepo, queryRepo } from './api'
-import type { QueryResponse } from './api'
+import type { AnswerSections, Navigation, QueryResponse } from './api'
 import { AnswerPanel } from './components/AnswerPanel'
 import { ChunkList } from './components/ChunkList'
 import { QueryBox } from './components/QueryBox'
@@ -59,6 +59,8 @@ export default function App() {
   const [repoPath, setRepoPath] = useState('.')
   const [question, setQuestion] = useState('')
   const [answer, setAnswer] = useState<string | null>(null)
+  const [answerSections, setAnswerSections] = useState<AnswerSections | null>(null)
+  const [navigation, setNavigation] = useState<Navigation | null>(null)
   const [citations, setCitations] = useState<Citation[]>([])
   const [chunks, setChunks] = useState<Chunk[]>([])
   const [confidence, setConfidence] = useState<'high' | 'medium' | 'low'>('low')
@@ -112,6 +114,8 @@ export default function App() {
     setIsQuerying(true)
     setQueryError(null)
     setAnswer(null)
+    setAnswerSections(null)
+    setNavigation(null)
     setCitations([])
     setChunks([])
     setConfidence('low')
@@ -123,11 +127,9 @@ export default function App() {
       setCitations(cit)
       setChunks(mapChunks(res.chunks, cit))
       setAnswer(res.answer)
-      setConfidence(
-        res.chunks.length > 0
-          ? confidenceFromScore(res.chunks[0].rerank_score)
-          : 'low'
-      )
+      setAnswerSections(res.answer_sections ?? null)
+      setNavigation(res.navigation ?? null)
+      setConfidence(res.confidence ?? 'low')
     } catch (e) {
       setQueryError(e instanceof Error ? e.message : 'Query failed')
     } finally {
@@ -135,7 +137,7 @@ export default function App() {
     }
   }
 
-  const showAnswerPanel = isQuerying || (answer !== null && answer !== '')
+  const showAnswerPanel = isQuerying || answer !== null || navigation !== null
 
   return (
     <div className="app-root">
@@ -168,10 +170,12 @@ export default function App() {
           {queryError ? <div className="app-query-error">{queryError}</div> : null}
           {showAnswerPanel ? (
             <AnswerPanel
-              answer={answer ?? ''}
+              answer={answer}
+              answer_sections={answerSections}
               citations={citations}
               confidence={confidence}
               isLoading={isQuerying}
+              navigation={navigation}
             />
           ) : null}
         </div>

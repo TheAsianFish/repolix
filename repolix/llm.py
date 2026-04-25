@@ -275,7 +275,7 @@ def answer_query(
     # --- Confidence gate ---
     top_score = results[0].get("score", 0.0) if results else 0.0
 
-    if top_score < 0.15:
+    if top_score < 0.05:
         # Low confidence: skip LLM entirely.
         # Return navigational response with closest matches.
         closest = []
@@ -348,7 +348,7 @@ def answer_query(
         "chunks_used": len(labeled_chunks),
         "confidence": (
             "high" if top_score >= 0.4
-            else "medium" if top_score >= 0.15
+            else "medium" if top_score >= 0.05
             else "low"
         ),
         "navigation": None,

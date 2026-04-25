@@ -175,6 +175,7 @@ async def index_endpoint(request: IndexRequest):
         store_path=store_path,
         openai_client=client,
         force=request.force,
+        exclude_tests=True,
     )
 
     return IndexResponse(**stats)

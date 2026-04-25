@@ -415,6 +415,7 @@ def index_repo(
     openai_client: OpenAI,
     force: bool = False,
     progress_callback=None,
+    exclude_tests: bool = True,
 ) -> dict:
     """
     Index an entire repository end to end.
@@ -448,7 +449,7 @@ def index_repo(
     store_path = Path(store_path).resolve()
     repo_root = str(repo_path)
 
-    files = walk_repo(repo_path)
+    files = walk_repo(repo_path, exclude_tests=exclude_tests)
     total = len(files)
 
     stats = {

@@ -7,7 +7,7 @@ directory structures. No test touches any real repository on disk.
 
 import pytest
 from pathlib import Path
-from repolix.walker import walk_repo, MAX_FILE_SIZE_BYTES
+from repolix.walker import walk_repo, MAX_FILE_SIZE_BYTES, TEST_DIRS
 
 
 def write_file(path: Path, content: str = "# placeholder") -> None:
@@ -77,7 +77,8 @@ class TestWalkRepo:
         write_file(tmp_path / "src" / "core" / "engine.py")
         write_file(tmp_path / "src" / "utils" / "helpers.py")
         write_file(tmp_path / "tests" / "test_engine.py")
-        result = walk_repo(tmp_path)
+        # exclude_tests=False so all three files are included regardless
+        result = walk_repo(tmp_path, exclude_tests=False)
         assert len(result) == 3
 
     def test_raises_on_nonexistent_path(self, tmp_path):
@@ -93,3 +94,30 @@ class TestWalkRepo:
     def test_empty_repo_returns_empty_list(self, tmp_path):
         result = walk_repo(tmp_path)
         assert result == []
+
+    def test_excludes_test_directory_by_default(self, tmp_path):
+        write_file(tmp_path / "src" / "main.py")
+        write_file(tmp_path / "tests" / "test_main.py")
+        result = walk_repo(tmp_path)
+        names = [p.name for p in result]
+        assert "main.py" in names
+        assert "test_main.py" not in names
+        assert len(result) == 1
+
+    def test_include_tests_overrides_exclusion(self, tmp_path):
+        write_file(tmp_path / "src" / "main.py")
+        write_file(tmp_path / "tests" / "test_main.py")
+        result = walk_repo(tmp_path, exclude_tests=False)
+        names = [p.name for p in result]
+        assert "main.py" in names
+        assert "test_main.py" in names
+        assert len(result) == 2
+
+    def test_excludes_test_file_by_name(self, tmp_path):
+        write_file(tmp_path / "src" / "main.py")
+        write_file(tmp_path / "src" / "test_main.py")
+        result = walk_repo(tmp_path)
+        names = [p.name for p in result]
+        assert "main.py" in names
+        assert "test_main.py" not in names
+        assert len(result) == 1

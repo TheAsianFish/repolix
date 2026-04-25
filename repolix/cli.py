@@ -111,7 +111,14 @@ def main():
     default=False,
     help="Re-index all files even if unchanged.",
 )
-def index(repo_path: str, store: str | None, force: bool):
+@click.option(
+    "--include-tests",
+    is_flag=True,
+    default=False,
+    help="Include test files and directories in the index. "
+         "Excluded by default to improve retrieval quality.",
+)
+def index(repo_path: str, store: str | None, force: bool, include_tests: bool):
     """
     Index a repository for querying.
 
@@ -157,6 +164,7 @@ def index(repo_path: str, store: str | None, force: bool):
             openai_client=client,
             force=force,
             progress_callback=progress_callback,
+            exclude_tests=not include_tests,
         )
 
     summary_lines = [
@@ -168,6 +176,10 @@ def index(repo_path: str, store: str | None, force: bool):
     if stats.get("cleaned", 0):
         summary_lines.append(
             f"[dim]Orphans removed: {stats['cleaned']} (deleted/renamed files)[/dim]"
+        )
+    if not include_tests:
+        summary_lines.append(
+            "[dim]Test dirs excluded  (use --include-tests to override)[/dim]"
         )
     console.print(Panel("\n".join(summary_lines), title="[bold]Index Complete[/bold]", border_style="dim"))
 

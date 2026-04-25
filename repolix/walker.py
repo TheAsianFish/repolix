@@ -32,6 +32,20 @@ IGNORED_DIRS = {
     "vendor",
 }
 
+# Directories that contain test code. Excluded by default to improve
+# retrieval quality — test fixtures and mocks pollute query results.
+# Pass exclude_tests=False to walk_repo() to disable this filter.
+TEST_DIRS: frozenset[str] = frozenset({
+    "tests",
+    "test",
+    "__tests__",
+    "__mocks__",
+    "spec",
+    "specs",
+    "e2e",
+    "fixtures",
+})
+
 # File extensions we index. Python + JavaScript/TypeScript.
 ALLOWED_EXTENSIONS = {
     ".py",
@@ -47,7 +61,10 @@ ALLOWED_EXTENSIONS = {
 MAX_FILE_SIZE_BYTES = 500 * 1024
 
 
-def walk_repo(repo_path: str | Path) -> list[Path]:
+def walk_repo(
+    repo_path: str | Path,
+    exclude_tests: bool = True,
+) -> list[Path]:
     """
     Walk the repository at repo_path and return a sorted list of
     indexable source file paths.
@@ -55,11 +72,19 @@ def walk_repo(repo_path: str | Path) -> list[Path]:
     A file is included if and only if:
       - None of its ancestor directories (relative to repo_path) are
         in IGNORED_DIRS or start with a dot
+      - Its directory name (lowercased) is not in TEST_DIRS when
+        exclude_tests is True
+      - Its stem does not start with "test_" or end with "_test" when
+        exclude_tests is True
       - Its file extension is in ALLOWED_EXTENSIONS
       - Its size on disk is <= MAX_FILE_SIZE_BYTES
 
     Args:
         repo_path: Path to the repository root. Resolved to absolute.
+        exclude_tests: When True (default), skip directories whose
+            lowercased name is in TEST_DIRS and files whose stem starts
+            with "test_" or ends with "_test". Pass False to include
+            all files (e.g. when explicitly indexing tests).
 
     Returns:
         Sorted list of Path objects. Sorting is deterministic so the
@@ -87,7 +112,9 @@ def walk_repo(repo_path: str | Path) -> list[Path]:
         # into every directory. In-place mutation is required here.
         dirs[:] = sorted([
             d for d in dirs
-            if d not in IGNORED_DIRS and not d.startswith(".")
+            if d not in IGNORED_DIRS
+            and not d.startswith(".")
+            and not (exclude_tests and d.lower() in TEST_DIRS)
         ])
 
         for filename in files:
@@ -95,6 +122,11 @@ def walk_repo(repo_path: str | Path) -> list[Path]:
 
             if file_path.suffix not in ALLOWED_EXTENSIONS:
                 continue
+
+            if exclude_tests:
+                stem = file_path.stem
+                if stem.startswith("test_") or stem.endswith("_test"):
+                    continue
 
             try:
                 size = file_path.stat().st_size

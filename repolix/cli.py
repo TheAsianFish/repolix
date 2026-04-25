@@ -66,7 +66,7 @@ def _confidence_label(top_score: float) -> str:
     """
     if top_score >= 0.4:
         return "high"
-    if top_score >= 0.15:
+    if top_score >= 0.05:
         return "medium"
     return "low"
 

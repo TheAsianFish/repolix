@@ -1,3 +1,4 @@
+import type { AnswerSections, Navigation } from '../api'
 import type { Citation } from '../types'
 import { ConfidenceTag } from './ConfidenceTag'
 
@@ -9,10 +10,12 @@ const skeletonStyle = `
 `
 
 interface Props {
-  answer: string
+  answer: string | null
+  answer_sections: AnswerSections | null
   citations: Citation[]
   confidence: 'high' | 'medium' | 'low'
   isLoading: boolean
+  navigation: Navigation | null
 }
 
 function scrollToChunk(label: string) {
@@ -62,7 +65,14 @@ function renderAnswerWithBadges(text: string) {
   })
 }
 
-export function AnswerPanel({ answer, citations, confidence, isLoading }: Props) {
+export function AnswerPanel({
+  answer,
+  answer_sections,
+  citations,
+  confidence,
+  isLoading,
+  navigation,
+}: Props) {
   return (
     <div
       style={{
@@ -98,6 +108,7 @@ export function AnswerPanel({ answer, citations, confidence, isLoading }: Props)
           <ConfidenceTag confidence={confidence} />
         )}
       </div>
+
       {isLoading ? (
         <div>
           <style>{skeletonStyle}</style>
@@ -131,45 +142,182 @@ export function AnswerPanel({ answer, citations, confidence, isLoading }: Props)
             }}
           />
         </div>
-      ) : (
-        <>
-          <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
-            {renderAnswerWithBadges(answer)}
+      ) : navigation ? (
+        /* Low confidence — yellow navigation panel */
+        <div
+          style={{
+            background: 'rgba(245, 158, 11, 0.08)',
+            border: '1px solid rgba(245, 158, 11, 0.25)',
+            borderRadius: 'var(--radius)',
+            padding: '12px 14px',
+            marginTop: 8,
+          }}
+        >
+          <div
+            style={{
+              color: '#f59e0b',
+              fontSize: '13px',
+              marginBottom: 12,
+            }}
+          >
+            {navigation.message}
           </div>
-          {citations.length > 0 ? (
-            <div style={{ marginTop: 20 }}>
+
+          {navigation.closest_matches.map((m, i) => (
+            <div
+              key={i}
+              style={{
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                color: 'var(--text-secondary)',
+                marginBottom: 4,
+              }}
+            >
+              →{' '}
+              <span style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
+                {m.name}
+              </span>
+              {'  '}
+              <span style={{ color: 'var(--text-dim)' }}>
+                {m.file_rel_path}:{m.start_line}
+              </span>
+            </div>
+          ))}
+
+          {navigation.suggestions.length > 0 && (
+            <div style={{ marginTop: 12 }}>
               <div
                 style={{
                   color: 'var(--text-secondary)',
                   fontSize: '11px',
                   textTransform: 'uppercase',
                   letterSpacing: '0.08em',
-                  marginBottom: 8,
+                  marginBottom: 6,
                 }}
               >
-                Citations
+                Suggestions
               </div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-                {citations.map(c => (
-                  <li
-                    key={c.label}
-                    className="mono"
-                    style={{
-                      fontSize: '12.5px',
-                      color: 'var(--text-primary)',
-                      marginBottom: 4,
-                    }}
-                  >
-                    {c.label} {c.file_rel_path}:{c.start_line}–{c.end_line} ({c.name})
-                    {c.is_truncated ? (
-                      <span style={{ color: 'var(--text-dim)' }}> [truncated]</span>
-                    ) : null}
-                  </li>
-                ))}
-              </ul>
+              {navigation.suggestions.map((s, i) => (
+                <div
+                  key={i}
+                  style={{
+                    color: 'var(--text-dim)',
+                    fontSize: '12px',
+                    marginBottom: 4,
+                  }}
+                >
+                  · {s}
+                </div>
+              ))}
             </div>
-          ) : null}
+          )}
+        </div>
+      ) : answer_sections ? (
+        /* Structured answer — three distinct sections */
+        <>
+          {answer_sections.answer && (
+            <div
+              style={{
+                color: 'var(--text-primary)',
+                fontWeight: 600,
+                fontSize: '14px',
+                lineHeight: 1.6,
+                marginBottom: answer_sections.how_it_works ? 16 : 0,
+              }}
+            >
+              {renderAnswerWithBadges(answer_sections.answer)}
+            </div>
+          )}
+
+          {answer_sections.how_it_works && (
+            <div style={{ marginBottom: answer_sections.where_to_look ? 16 : 0 }}>
+              <div
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  marginBottom: 6,
+                }}
+              >
+                How it works
+              </div>
+              <div
+                style={{
+                  color: 'var(--text-primary)',
+                  lineHeight: 1.6,
+                  fontSize: '13px',
+                }}
+              >
+                {renderAnswerWithBadges(answer_sections.how_it_works)}
+              </div>
+            </div>
+          )}
+
+          {answer_sections.where_to_look && (
+            <div>
+              <div
+                style={{
+                  color: 'var(--text-secondary)',
+                  fontSize: '11px',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.08em',
+                  marginBottom: 6,
+                }}
+              >
+                Where to look next
+              </div>
+              <div
+                style={{
+                  color: 'var(--text-dim)',
+                  lineHeight: 1.6,
+                  fontSize: '13px',
+                }}
+              >
+                {renderAnswerWithBadges(answer_sections.where_to_look)}
+              </div>
+            </div>
+          )}
         </>
+      ) : (
+        /* Fallback — raw answer string */
+        <div style={{ color: 'var(--text-primary)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+          {renderAnswerWithBadges(answer ?? '')}
+        </div>
+      )}
+
+      {!navigation && citations.length > 0 && (
+        <div style={{ marginTop: 20 }}>
+          <div
+            style={{
+              color: 'var(--text-secondary)',
+              fontSize: '11px',
+              textTransform: 'uppercase',
+              letterSpacing: '0.08em',
+              marginBottom: 8,
+            }}
+          >
+            Citations
+          </div>
+          <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+            {citations.map(c => (
+              <li
+                key={c.label}
+                className="mono"
+                style={{
+                  fontSize: '12.5px',
+                  color: 'var(--text-primary)',
+                  marginBottom: 4,
+                }}
+              >
+                {c.label} {c.file_rel_path}:{c.start_line}–{c.end_line} ({c.name})
+                {c.is_truncated ? (
+                  <span style={{ color: 'var(--text-dim)' }}> [truncated]</span>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
     </div>
   )

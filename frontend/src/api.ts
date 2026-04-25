@@ -43,11 +43,32 @@ export interface Chunk {
   parent_class: string | null
 }
 
+export interface AnswerSections {
+  answer: string
+  how_it_works: string | null
+  where_to_look: string | null
+}
+
+export interface NavigationMatch {
+  name: string
+  file_rel_path: string
+  start_line: number
+}
+
+export interface Navigation {
+  message: string
+  closest_matches: NavigationMatch[]
+  suggestions: string[]
+}
+
 export interface QueryResponse {
   answer: string | null
+  answer_sections: AnswerSections | null
   citations: Citation[]
   chunks: Chunk[]
   chunks_used: number
+  confidence: 'high' | 'medium' | 'low'
+  navigation: Navigation | null
 }
 
 export interface IndexResponse {

@@ -273,7 +273,8 @@ def answer_query(
         }
 
     # --- Confidence gate ---
-    top_score = results[0].get("score", 0.0) if results else 0.0
+    # Retriever produces rerank_score; "score" is accepted for test compatibility.
+    top_score = results[0].get("rerank_score", results[0].get("score", 0.0)) if results else 0.0
 
     if top_score < 0.05:
         # Low confidence: skip LLM entirely.

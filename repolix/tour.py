@@ -35,6 +35,28 @@ ENTRY_POINT_FUNCTIONS = frozenset({
     "setup", "bootstrap", "serve", "launch",
 })
 
+BUILTIN_NAMES: frozenset[str] = frozenset({
+    # Python builtins and common stdlib calls
+    "get", "append", "extend", "update", "pop", "remove",
+    "len", "str", "int", "float", "bool", "list", "dict",
+    "set", "tuple", "print", "range", "enumerate", "zip",
+    "map", "filter", "sorted", "reversed", "isinstance",
+    "hasattr", "getattr", "setattr", "open", "read", "write",
+    "join", "split", "strip", "lstrip", "rstrip", "format",
+    "replace", "encode", "decode", "items", "keys", "values",
+    "Path", "resolve", "exists", "mkdir", "unlink", "stat",
+    "any", "all", "next", "iter", "sum", "min", "max",
+    "super", "vars", "dir", "type", "id", "hash", "repr",
+    "lower", "upper", "startswith", "endswith", "count",
+    # JS/TS builtins and common patterns
+    "push", "forEach", "find", "findIndex", "includes",
+    "indexOf", "slice", "splice", "concat", "reduce",
+    "JSON", "Promise", "console", "Object", "Array",
+    "parseInt", "parseFloat", "toString", "valueOf",
+    "addEventListener", "querySelector", "getElementById",
+    "fetch", "then", "catch", "finally",
+})
+
 TOUR_MAX_CHUNKS = 8
 
 
@@ -101,7 +123,7 @@ def compute_inbound_counts(chunks: list[dict]) -> dict[str, int]:
     counts: dict[str, int] = {}
     for chunk in chunks:
         for called_name in chunk["calls"]:
-            if called_name:
+            if called_name and called_name not in BUILTIN_NAMES:
                 counts[called_name] = counts.get(called_name, 0) + 1
     return counts
 

@@ -248,8 +248,10 @@ Produce a concise orientation briefing in exactly this structure.
 Do not add extra sections. Use the exact header names shown.
 
 OVERVIEW
-[2-3 sentences. What does this repo do? What problem does it solve?
-Infer from the function names, file names, and docstrings provided.]
+[2-3 sentences. What does this repo do and what problem does it
+solve for the developer using it? Be specific about the value:
+what can a developer do with this tool that they could not easily
+do before? Infer from function names, file names, and docstrings.]
 
 ENTRY POINTS
 [Where does execution start? Name the specific file and function.
@@ -260,8 +262,10 @@ MAJOR MODULES
 Only include files represented in the provided chunks.]
 
 KEY ABSTRACTIONS
-[The 2-3 most important functions or classes and why they are
-central to the architecture. Reference inbound call counts.]
+[The 2-3 most important functions or classes. For each, write
+2 sentences: first what it does, then why it is architecturally
+central — what breaks or becomes impossible if it is removed.
+Prefer functions with high inbound call counts.]
 
 START HERE
 [Recommended reading order for a developer new to this codebase.

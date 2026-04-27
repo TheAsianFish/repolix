@@ -55,6 +55,10 @@ BUILTIN_NAMES: frozenset[str] = frozenset({
     "parseInt", "parseFloat", "toString", "valueOf",
     "addEventListener", "querySelector", "getElementById",
     "fetch", "then", "catch", "finally",
+    # ChromaDB collection methods
+    "add", "delete", "upsert", "query", "peek",
+    "get_or_create_collection", "get_collection",
+    "create_collection", "modify", "count",
 })
 
 TOUR_MAX_CHUNKS = 8
@@ -200,7 +204,10 @@ def select_tour_chunks(
 
     sorted_chunks = sorted(
         chunks,
-        key=lambda c: inbound_counts.get(c["name"], 0),
+        key=lambda c: (
+            inbound_counts.get(c["name"], 0) +
+            0.5 * len(c.get("calls", []))
+        ),
         reverse=True,
     )
 

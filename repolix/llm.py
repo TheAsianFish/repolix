@@ -258,11 +258,15 @@ Produce the briefing in exactly this structure.
 Use the exact header names. Do not add extra sections.
 
 OVERVIEW
-[2-3 sentences. Answer: what can a developer accomplish with
-this tool that would be tedious or error-prone to do by hand?
-Lead with the capability and outcome — what the developer can
-now do, not what the system does internally. Do not start with
-the repo name or the technology stack.]
+[2-3 sentences. Be specific and concrete. Name what the tool
+does, what languages it supports, and what a developer gets
+out of it that they couldn't easily get before. Example of
+the right tone: "repolix lets you point at any Python,
+JavaScript, or TypeScript repo, ask plain English questions,
+and get back answers with exact file and line citations —
+the search index stays on your disk and nothing is stored
+in a remote service." Match that level of specificity.
+Lead with the tool's capability. Do not start with "You can".]
 
 ENTRY POINTS
 [Where does execution start? One line per entry point in the

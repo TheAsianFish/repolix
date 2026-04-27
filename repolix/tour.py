@@ -55,6 +55,7 @@ BUILTIN_NAMES: frozenset[str] = frozenset({
     "parseInt", "parseFloat", "toString", "valueOf",
     "addEventListener", "querySelector", "getElementById",
     "fetch", "then", "catch", "finally",
+    "trim", "trimStart", "trimEnd",  # JS string methods
     # ChromaDB collection methods
     "add", "delete", "upsert", "query", "peek",
     "get_or_create_collection", "get_collection",

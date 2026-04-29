@@ -162,6 +162,25 @@ class TourResponse(BaseModel):
     error: str | None
 
 
+class TraceRequest(BaseModel):
+    symbol: str
+    repo_path: str
+    max_depth: int = 3
+    max_nodes: int = 20
+    include_backward: bool = True
+    explain: bool = False
+
+
+class TraceResponse(BaseModel):
+    symbol: str
+    tree_str: str
+    backward: list[dict]
+    visited_count: int
+    truncated: bool
+    explanation: str | None
+    error: str | None
+
+
 # ── Endpoints ─────────────────────────────────────────────────────────────────
 
 @app.post("/index", response_model=IndexResponse)
@@ -281,6 +300,38 @@ def tour_endpoint(req: TourRequest):
         path_prefix=req.path_prefix,
     )
     return TourResponse(**result)
+
+
+@app.post("/trace", response_model=TraceResponse)
+def trace_endpoint(req: TraceRequest):
+    """
+    Trace the call graph for a named function or class.
+
+    Returns the forward call tree, list of callers, and optionally
+    an LLM explanation. Zero API calls unless explain=True.
+    """
+    from repolix.trace import run_trace
+    repo_path = Path(req.repo_path).resolve()
+    store_path = repo_path / ".repolix"
+    client = get_openai_client() if req.explain else None
+    result = run_trace(
+        symbol=req.symbol,
+        store_path=store_path,
+        max_depth=req.max_depth,
+        max_nodes=req.max_nodes,
+        include_backward=req.include_backward,
+        openai_client=client,
+        explain=req.explain,
+    )
+    return TraceResponse(
+        symbol=result["symbol"],
+        tree_str=result["tree_str"],
+        backward=result["backward"],
+        visited_count=result["forward"].get("visited_count", 0),
+        truncated=result["forward"].get("truncated", False),
+        explanation=result.get("explanation"),
+        error=result.get("error"),
+    )
 
 
 @app.get("/status", response_model=StatusResponse)

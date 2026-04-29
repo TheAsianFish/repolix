@@ -383,6 +383,67 @@ def answer_tour(context: str, openai_client: OpenAI) -> dict:
     }
 
 
+TRACE_SYSTEM_PROMPT = """You are a senior engineer explaining
+a function's call graph to a developer who just found it and
+wants to understand how it fits into the architecture.
+
+You have been given a forward call tree and a list of callers.
+Your job is to explain what this call chain accomplishes —
+not to list the functions, but to explain the flow of control
+and why it is structured this way.
+
+Write 3-5 sentences maximum. Be specific — name the functions
+and explain what each hand-off accomplishes. Write for a
+developer who can see the tree but wants the insight a senior
+engineer would add.
+
+Do not say "based on the provided tree" or "from the context".
+Do not reproduce the tree. Just explain it.
+"""
+
+
+def answer_trace(
+    tree_str: str,
+    backward: list[dict],
+    symbol: str,
+    openai_client: OpenAI,
+) -> str:
+    """
+    Generate a plain English explanation of a trace result.
+
+    Args:
+        tree_str: Formatted tree string from format_trace_tree().
+        backward: List of caller dicts from backward_trace().
+        symbol: The root symbol name.
+        openai_client: Initialized OpenAI client.
+
+    Returns:
+        Plain English explanation string. No citations block.
+    """
+    caller_lines = "\n".join(
+        f"  {c['name']}  [{c['file_rel_path']}:{c['start_line']}]"
+        for c in backward[:5]
+    ) or "  (no callers found in index)"
+
+    context = (
+        f"SYMBOL: {symbol}\n\n"
+        f"FORWARD CALL TREE:\n{tree_str}\n\n"
+        f"CALLERS OF {symbol}:\n{caller_lines}"
+    )
+
+    response = openai_client.chat.completions.create(
+        model=LLM_MODEL,
+        messages=[
+            {"role": "system", "content": TRACE_SYSTEM_PROMPT},
+            {"role": "user", "content": context},
+        ],
+        temperature=0.2,
+        max_completion_tokens=512,
+    )
+
+    return response.choices[0].message.content or ""
+
+
 def answer_query(
     query: str,
     results: list[dict],

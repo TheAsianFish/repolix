@@ -444,3 +444,139 @@ def tour(repo_path: str, store: str | None, scope_path: str | None, save: bool):
         save_path = store_path / "tour.md"
         save_path.write_text(result["briefing"] or "")
         console.print(f"[dim]Saved to {save_path}[/dim]")
+
+
+@main.command()
+@click.argument("symbol")
+@click.option(
+    "--repo",
+    default=".",
+    show_default=True,
+    help="Path to the repository that was indexed.",
+)
+@click.option(
+    "--store",
+    default=None,
+    help="Path to ChromaDB store directory. Defaults to <repo>/.repolix/",
+)
+@click.option(
+    "--depth",
+    default=3,
+    show_default=True,
+    help="Maximum BFS depth for forward traversal.",
+)
+@click.option(
+    "--max-nodes",
+    default=20,
+    show_default=True,
+    help="Maximum number of nodes to visit.",
+)
+@click.option(
+    "--reverse",
+    is_flag=True,
+    default=False,
+    help="Show callers of SYMBOL instead of what SYMBOL calls.",
+)
+@click.option(
+    "--explain",
+    is_flag=True,
+    default=False,
+    help="Add LLM explanation of the call chain (uses 1 API call).",
+)
+def trace(
+    symbol: str,
+    repo: str,
+    store: str | None,
+    depth: int,
+    max_nodes: int,
+    reverse: bool,
+    explain: bool,
+):
+    """
+    Trace the call graph for a named function or class.
+
+    SYMBOL is the exact function or class name to trace.
+
+    Examples:
+      repolix trace retrieve
+      repolix trace retrieve --depth 5
+      repolix trace retrieve --reverse
+      repolix trace index_repo --explain
+    """
+    from repolix.trace import run_trace
+    from rich.text import Text
+
+    console = Console(highlight=False)
+    repo_path = Path(repo).resolve()
+    store_path = resolve_store_path(repo_path, store)
+
+    if not (store_path / "chroma.sqlite3").exists():
+        raise click.ClickException(
+            f"No index found at {store_path}. "
+            f"Run: repolix index {repo_path}"
+        )
+
+    client = get_openai_client() if explain else None
+    console.print(f"[dim]Tracing {symbol}...[/dim]")
+
+    result = run_trace(
+        symbol=symbol,
+        store_path=store_path,
+        max_depth=depth,
+        max_nodes=max_nodes,
+        include_backward=not reverse,
+        openai_client=client,
+        explain=explain,
+    )
+
+    if result["error"] and result["forward"].get("not_found"):
+        raise click.ClickException(result["error"])
+
+    if reverse:
+        console.print(
+            Rule(f"[dim]Callers of {symbol}[/dim]", style="dim")
+        )
+        callers = result["backward"]
+        if not callers:
+            console.print(f"  [dim]No callers found for '{symbol}'[/dim]")
+        else:
+            for caller in callers:
+                path = caller["file_rel_path"]
+                line = caller["start_line"]
+                console.print(
+                    f"  [bold]{escape(caller['name'])}[/bold]"
+                    f"  [dim]{path}:{line}[/dim]"
+                )
+    else:
+        console.print(Panel(
+            result["tree_str"],
+            title=f"[bold cyan]Trace: {escape(symbol)}[/bold cyan]",
+            border_style="cyan",
+        ))
+
+        if result["backward"]:
+            console.print(
+                Rule(f"[dim]Callers of {symbol}[/dim]", style="dim")
+            )
+            for caller in result["backward"]:
+                path = caller["file_rel_path"]
+                line = caller["start_line"]
+                console.print(
+                    f"  [bold]{escape(caller['name'])}[/bold]"
+                    f"  [dim]{path}:{line}[/dim]"
+                )
+
+    fwd = result["forward"]
+    visited = fwd.get("visited_count", 0)
+    truncated = fwd.get("truncated", False)
+    trunc_note = "  [yellow](truncated)[/yellow]" if truncated else ""
+    console.print(
+        f"\n[dim]{depth} levels · {visited} nodes{trunc_note}[/dim]"
+    )
+
+    if result.get("explanation"):
+        console.print(Panel(
+            result["explanation"],
+            title="[bold cyan]Explanation[/bold cyan]",
+            border_style="cyan",
+        ))

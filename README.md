@@ -116,6 +116,41 @@ repolix tour . --path repolix/
 repolix tour . --save
 ```
 
+### Trace a call graph
+
+```bash
+repolix trace retrieve
+```
+
+```
+╭──────────────── Trace: retrieve ─────────────────╮
+│ retrieve  [repolix/retriever.py:58]               │
+│ ├── query_chunks  [repolix/store.py:180]          │
+│ │   └── _get_client  [repolix/store.py:43]        │
+│ ├── keyword_search  [repolix/store.py:240]        │
+│ ├── reciprocal_rank_fusion  [repolix/retriever.py:...]│
+│ └── expand_via_call_graph  [repolix/retriever.py:...]│
+╰───────────────────────────────────────────────────╯
+── Callers of retrieve ──────────────────────────────
+  query          repolix/cli.py:181
+  query_endpoint repolix/api.py:95
+
+3 levels · 6 nodes
+```
+
+`repolix trace` is **zero API calls by default** — it reads call-graph metadata already stored in ChromaDB from the index run.
+
+```bash
+# Show what calls a function (reverse direction)
+repolix trace retrieve --reverse
+
+# Increase traversal depth
+repolix trace index_repo --depth 5
+
+# Add a plain-English explanation of the call chain (1 LLM call)
+repolix trace retrieve --explain
+```
+
 ### Web UI
 
 ```bash
@@ -225,9 +260,9 @@ bash start.sh
 **Shipped in V2**
 - `.ts`, `.tsx`, `.js`, `.jsx` indexing via Tree-sitter JavaScript/TypeScript grammars
 - `repolix tour` — proactive orientation briefing driven by call-graph metadata (0.2.2)
+- `repolix trace` — BFS call-graph traversal with forward/reverse/explain modes (0.2.3)
 
 **Next in V2**
-- `repolix trace` — call graph traversal for any named function
 - Local model support via Ollama (zero API cost, fully air-gapped)
 - Persistent query sessions across terminal restarts
 

@@ -210,10 +210,11 @@ Hash IDs: "{absolute_file_path}"
 | repolix/chunker.py | Complete | AST parsing, chunk + metadata extraction, is_truncated flag |
 | repolix/store.py | Complete | Embeddings, ChromaDB storage, retrieval, index_repo orchestrator |
 | repolix/retriever.py | Complete | Hybrid search, RRF, re-ranking, call graph expansion; display_rel_path_from_meta for safe citation paths |
-| repolix/llm.py | Complete | Prompt construction, gpt-5.4-mini call, citation parsing, CITATIONS block stripping |
+| repolix/llm.py | Complete | Prompt construction, gpt-5.4-mini call, citation parsing, CITATIONS block stripping; answer_trace for trace explanations |
 | repolix/tour.py | Complete | Call-graph analysis, entry point detection, chunk selection, context formatting, generate_tour orchestrator |
-| repolix/cli.py | Complete | Click CLI — index, query, and tour commands, confidence label |
-| repolix/api.py | Complete | FastAPI backend — /index, /query, /tour, /status, /health; serves built SPA from frontend/dist |
+| repolix/trace.py | Complete | BFS forward trace, backward trace (reverse lookup), format_trace_tree, run_trace orchestrator |
+| repolix/cli.py | Complete | Click CLI — index, query, tour, and trace commands, confidence label |
+| repolix/api.py | Complete | FastAPI backend — /index, /query, /tour, /trace, /status, /health; serves built SPA from frontend/dist |
 | frontend/src/ | Complete | React + TypeScript SPA; Vite dev server for development; built output served by FastAPI |
 | tests/conftest.py | Complete | Creates minimal frontend/dist stub before TestClient initialises |
 
@@ -234,9 +235,10 @@ the embedding logic lives in store.py as _embed_texts and build_embed_text.
 | tests/test_cli.py | 12 | Passing |
 | tests/test_api.py | 9 | Passing |
 | tests/test_tour.py | 24 | Passing |
+| tests/test_trace.py | 20 | Passing |
 
 Run all tests: pytest tests/ -v
-Total: 193 passing
+Total: 213 passing
 
 Note: test counts above are approximate. Always trust the actual
 pytest output over this table.
@@ -266,11 +268,13 @@ pytest output over this table.
 | 17 | repolix 0.2.1 — Web UI same-origin fetches, CORS localhost/127.0.0.1, VITE_API_URL | Complete |
 | 18 | LLM output layer: structured response format, section parsing, confidence gating | Complete |
 | 19 | repolix 0.2.2 — tour command: proactive orientation briefing via call-graph analysis | Complete |
+| 20 | repolix trace command: BFS call-graph traversal, forward/reverse/explain modes | Complete |
 
 V1 shipped as repolix 0.1.0 on PyPI; **0.1.1** followed (UI polish and fixes).
-**0.2.2** is the current line: **0.2.1** plus `repolix tour` — a proactive codebase
-orientation briefing driven by call-graph metadata, zero embedding cost.
-Milestone 19 (tour command) complete.
+**0.2.2** shipped `repolix tour`. **0.2.3** (current development line) adds
+`repolix trace` — BFS call-graph traversal for any named function, zero API
+calls by default, optional `--explain` for a single LLM narration.
+Milestone 20 (trace command) complete.
 
 ---
 
@@ -410,13 +414,35 @@ Key design decisions:
 
 ---
 
+## Milestone 20 — trace command: BFS call-graph traversal
+
+| Change | Files |
+|---|---|
+| Add repolix/trace.py: lookup_chunk_by_name, forward_trace, backward_trace, format_trace_tree, run_trace | repolix/trace.py |
+| Add TRACE_SYSTEM_PROMPT and answer_trace() to llm.py; placed after answer_tour() | repolix/llm.py |
+| Add trace CLI command: --depth, --max-nodes, --reverse, --explain; Rich Panel tree + Rule callers section | repolix/cli.py |
+| Add TraceRequest, TraceResponse Pydantic models and POST /trace endpoint | repolix/api.py |
+| Add tests/test_trace.py: 20 tests covering all pipeline functions | tests/test_trace.py |
+
+Key design decisions:
+- forward_trace: BFS over calls edges using lookup_chunk_by_name (same lookup as expand_via_call_graph)
+- Cycle detection: already-visited calls recorded inline during expansion (not on dequeue) so child_already_visited is populated correctly before the node is ever re-encountered
+- backward_trace: O(n) scan via get_all_chunks from tour.py — no BFS, one level up only
+- get_all_chunks import is lazy inside backward_trace (defensive against future circular imports between trace.py and tour.py)
+- format_trace_tree: recursive Unicode tree renderer; already-visited shown inline as [already visited]; truncated nodes hint --depth
+- run_trace: zero API calls by default; explain=True triggers single answer_trace() LLM call
+- Patch target for get_all_chunks in tests is repolix.tour.get_all_chunks (lazy import pattern)
+- max_nodes cap test requires explicit high max_depth to prevent depth limit firing before node cap
+
+---
+
 ## V2 Roadmap
 
 - TypeScript / JavaScript support (Tree-sitter parser swap) ✓ Done in V2-1
 - `repolix tour` — proactive orientation briefing ✓ Done in V2-2
+- `repolix trace` — call graph traversal for any named function ✓ Done in V2-3
 - VS Code extension wrapper
 - Dependency graph visualization
-- `repolix trace` — call graph traversal for any named function
 - Secret pattern filter in walker.py (skip files with hardcoded credentials)
 - Smart truncation: preserve head + tail of oversized chunks
 - Index-time warning for truncated chunks
@@ -521,3 +547,12 @@ Sequence:
   as markup tags.
 - Do not patch "repolix.store.chunk_file" in tests — chunk_file is
   imported locally inside index_repo, so patch "repolix.chunker.chunk_file".
+- Do not patch "repolix.trace.get_all_chunks" — get_all_chunks is lazily
+  imported inside backward_trace from repolix.tour, so patch
+  "repolix.tour.get_all_chunks".
+- Do not rely on BFS dequeue to detect already-visited cycle nodes in
+  forward_trace — already-visited calls must be recorded in
+  child_already_visited during the expansion phase, not on dequeue, because
+  already-visited names are never re-enqueued.
+- Do not test max_nodes cap with the default max_depth=3 — the depth limit
+  will terminate traversal before the node cap fires on short chains.

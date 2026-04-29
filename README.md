@@ -166,7 +166,15 @@ Use any port; the bundled UI talks to the API on the **same** origin. Add `--hos
 
 Getting dropped into an unfamiliar codebase is painful. Documentation is outdated. Grep finds strings, not meaning. LLM chatbots hallucinate file names and function signatures because they have no access to your actual code.
 
-repolix indexes your code locally using Tree-sitter AST chunking for `.py`, `.ts`, `.tsx`, `.js`, and `.jsx` — every retrieved chunk is a complete function or class, never an arbitrary line slice. It runs entirely on your machine.
+---
+
+## Who is this for
+
+repolix is built for developers navigating codebases they didn't write —
+onboarding to a new job, contributing to open source, or auditing vendor
+code. It works on repos you don't own and don't have open in an editor.
+Unlike IDE-integrated tools, it requires no active editing session and
+nothing leaves your machine.
 
 ---
 

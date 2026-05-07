@@ -133,6 +133,24 @@ def test_forward_trace_max_nodes_cap(tmp_path):
     assert result["truncated"] is True
 
 
+def test_forward_trace_skips_builtins(tmp_path):
+    """Builtin and stdlib names must never appear as tree nodes."""
+    chunks = {
+        "retrieve": _make_chunk("retrieve", ["get", "append", "len", "query_chunks"]),
+        "query_chunks": _make_chunk("query_chunks", []),
+    }
+
+    with patch("repolix.trace.lookup_chunk_by_name", side_effect=_lookup_factory(chunks)):
+        result = forward_trace("retrieve", tmp_path, max_depth=2)
+
+    assert result["not_found"] is False
+    assert "query_chunks" in result["nodes"]
+    # Builtins must not appear as nodes
+    for builtin in ("get", "append", "len"):
+        assert builtin not in result["nodes"]
+        assert builtin not in result["nodes"]["retrieve"]["children"]
+
+
 def test_forward_trace_depth_limit(tmp_path):
     # 4 levels deep: root -> L1 -> L2 -> L3
     chunks = {
@@ -229,6 +247,8 @@ def test_format_trace_tree_basic():
     assert "query_chunks" in output
     assert "keyword_search" in output
     assert "├──" in output or "└──" in output
+    # Every resolved node must show [file_rel_path:start_line]
+    assert "[repolix/retriever.py:10]" in output
 
 
 def test_format_trace_tree_not_found():

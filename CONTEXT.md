@@ -235,10 +235,10 @@ the embedding logic lives in store.py as _embed_texts and build_embed_text.
 | tests/test_cli.py | 12 | Passing |
 | tests/test_api.py | 9 | Passing |
 | tests/test_tour.py | 24 | Passing |
-| tests/test_trace.py | 20 | Passing |
+| tests/test_trace.py | 21 | Passing |
 
 Run all tests: pytest tests/ -v
-Total: 213 passing
+Total: 214 passing
 
 Note: test counts above are approximate. Always trust the actual
 pytest output over this table.
@@ -269,12 +269,13 @@ pytest output over this table.
 | 18 | LLM output layer: structured response format, section parsing, confidence gating | Complete |
 | 19 | repolix 0.2.2 — tour command: proactive orientation briefing via call-graph analysis | Complete |
 | 20 | repolix trace command: BFS call-graph traversal, forward/reverse/explain modes | Complete |
+| 21 | repolix 0.2.3 — trace output quality: BUILTIN_NAMES filter + citation test coverage | Complete |
 
 V1 shipped as repolix 0.1.0 on PyPI; **0.1.1** followed (UI polish and fixes).
-**0.2.2** shipped `repolix tour`. **0.2.3** (current development line) adds
-`repolix trace` — BFS call-graph traversal for any named function, zero API
-calls by default, optional `--explain` for a single LLM narration.
-Milestone 20 (trace command) complete.
+**0.2.2** shipped `repolix tour`. **0.2.3** ships `repolix trace` — BFS
+call-graph traversal for any named function, zero API calls by default,
+optional `--explain` for a single LLM narration, and output quality fixes
+(builtin filter + file/line citations on every node).
 
 ---
 
@@ -355,8 +356,6 @@ Test on TestPyPI first: twine upload --repository testpypi dist/*
 
 ---
 
----
-
 ## Milestone 15 — V2-1: JavaScript and TypeScript indexing
 
 | Change | Files |
@@ -433,6 +432,23 @@ Key design decisions:
 - run_trace: zero API calls by default; explain=True triggers single answer_trace() LLM call
 - Patch target for get_all_chunks in tests is repolix.tour.get_all_chunks (lazy import pattern)
 - max_nodes cap test requires explicit high max_depth to prevent depth limit firing before node cap
+
+---
+
+## Milestone 21 — trace output quality fixes
+
+| Change | Files |
+|---|---|
+| Import BUILTIN_NAMES from repolix.tour at top level in trace.py | repolix/trace.py |
+| Add `if call_name in BUILTIN_NAMES: continue` guard before lookup_chunk_by_name in forward_trace calls loop | repolix/trace.py |
+| Add test_forward_trace_skips_builtins: asserts get/append/len never appear as tree nodes | tests/test_trace.py |
+| Extend test_format_trace_tree_basic: assert `[file_rel_path:start_line]` present on every resolved node | tests/test_trace.py |
+
+Key design decisions:
+- BUILTIN_NAMES filter applied before lookup_chunk_by_name to avoid wasted ChromaDB roundtrips for names that will never resolve
+- format_trace_tree already rendered citations via display_rel_path_from_meta; test coverage added to lock in the format
+- BUILTIN_NAMES imported at module scope (not lazily) — it is a frozenset constant with no circular import risk
+- 21 tests passing after changes
 
 ---
 
@@ -556,3 +572,6 @@ Sequence:
   already-visited names are never re-enqueued.
 - Do not test max_nodes cap with the default max_depth=3 — the depth limit
   will terminate traversal before the node cap fires on short chains.
+- Do not call lookup_chunk_by_name for names in BUILTIN_NAMES — filter them
+  with `if call_name in BUILTIN_NAMES: continue` before the lookup to avoid
+  wasted ChromaDB roundtrips and spurious tree nodes.

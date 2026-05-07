@@ -6,7 +6,7 @@
 
 ## Preview
 
-![Repolix preview](docs/images/preview.png)
+![Repolix preview](https://raw.githubusercontent.com/TheAsianFish/repolix/main/docs/images/preview.png)
 
 ```
 $ repolix index ./myrepo
@@ -268,7 +268,7 @@ bash start.sh
 **Shipped in V2**
 - `.ts`, `.tsx`, `.js`, `.jsx` indexing via Tree-sitter JavaScript/TypeScript grammars
 - `repolix tour` — proactive orientation briefing driven by call-graph metadata (0.2.2)
-- `repolix trace` — BFS call-graph traversal with forward/reverse/explain modes (0.2.3)
+- `repolix trace` — BFS call-graph traversal with forward/reverse/explain modes (0.2.3) ✓
 
 **Next in V2**
 - Local model support via Ollama (zero API cost, fully air-gapped)

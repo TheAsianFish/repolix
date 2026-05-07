@@ -22,6 +22,7 @@ from openai import OpenAI
 
 from repolix.store import keyword_search, CHUNKS_COLLECTION, _get_client
 from repolix.retriever import display_rel_path_from_meta
+from repolix.tour import BUILTIN_NAMES
 
 TRACE_MAX_DEPTH = 3
 TRACE_MAX_NODES = 20
@@ -128,6 +129,8 @@ def forward_trace(
             calls = chunk.get("calls", [])
             for called_name in calls:
                 if not called_name:
+                    continue
+                if called_name in BUILTIN_NAMES:
                     continue
                 if called_name in visited:
                     # Record cycle/already-visited reference for tree rendering
